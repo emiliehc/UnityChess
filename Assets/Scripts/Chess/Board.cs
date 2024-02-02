@@ -426,6 +426,8 @@ public unsafe struct Board
         byte pawnPromotionRank = m_SideToMove == SideToMove.White ? BoardUtils.Rank8 : BoardUtils.Rank1;
         int[] pawnAttackMoves = m_SideToMove == SideToMove.White ? BoardUtils.WhitePawnAttackMoves : BoardUtils.BlackPawnAttackMoves;
         byte enPassantRank = m_SideToMove == SideToMove.White ? BoardUtils.Rank5 : BoardUtils.Rank4;
+        bool canCastleOO = m_SideToMove == SideToMove.White ? m_WhiteCanCastleOO : m_BlackCanCastleOO;
+        bool canCastleOOO = m_SideToMove == SideToMove.White ? m_WhiteCanCastleOOO : m_BlackCanCastleOOO;
         
         // for current side to move
         // for each square
@@ -537,16 +539,81 @@ public unsafe struct Board
                                 return 1;
                             }
                                 
-                            moves->Add(MoveUtils.ConstructQuietMove(sq, to) | Move.Capture, MoveList.KnightCapture);
+                            moves->Add(MoveUtils.ConstructQuietMove(sq, to) | Move.Capture, MoveList.KnightCapturePriority);
                         }
                     }
                 }
             }
+            else if ((piece & Piece.PieceColorMask) == (Piece.Bishop | currentColor))
+            {
+                // bishop
+            }
+            else if ((piece & Piece.PieceColorMask) == (Piece.Rook | currentColor))
+            {
+                // rook
+            }
+            else if ((piece & Piece.PieceColorMask) == (Piece.Queen | currentColor))
+            {
+                // queen
+            }
+            else if ((piece & Piece.PieceColorMask) == (Piece.King | currentColor))
+            {
+                // king
+                // movements
+                foreach (int dir in BoardUtils.KingMoves)
+                {
+                    byte to = (byte)(sq + dir);
+                    if (!BoardUtils.IsSquareValid(to)) continue;
+                    // see if empty
+                    if ((m_Pieces[to].AsPiece() & Piece.PieceMask) == Piece.Empty)
+                    {
+                        moves->Add(MoveUtils.ConstructQuietMove(sq, to), MoveList.KingMovePriority);
+                    }
+                    else
+                    {
+                        // see if capture
+                        if ((m_Pieces[to].AsPiece() & Piece.ColorMask) != currentColor)
+                        {
+                            // king ?
+                            if ((m_Pieces[to].AsPiece() & Piece.PieceMask) == Piece.King)
+                            {
+                                // forced to capture the king
+                                moves->Clear();
+                                moves->Add(MoveUtils.ConstructQuietMove(sq, to) | Move.Capture, 0);
+                                return 1;
+                            }
+                                
+                            moves->Add(MoveUtils.ConstructQuietMove(sq, to) | Move.Capture, MoveList.KingCapturePriority);
+                        }
+                    }
+                }
+                
+                // O-O
+                if (canCastleOO)
+                {
+                    byte rookTo = (byte)(sq + BoardUtils.DirectionE);
+                    byte kingTo = (byte)(sq + BoardUtils.DirectionE + BoardUtils.DirectionE);
+                    // check if both squares are empty
+                    if ((m_Pieces[rookTo].AsPiece() & Piece.PieceMask) == Piece.Empty && (m_Pieces[kingTo].AsPiece() & Piece.PieceMask) == Piece.Empty)
+                    {
+                        moves->Add(MoveUtils.ConstructQuietMove(sq, kingTo) | Move.CastleOO, MoveList.CastlePriority);
+                    }
+                }
+                
+                // O-O-O
+                if (canCastleOOO)
+                {
+                    byte rookTo = (byte)(sq + BoardUtils.DirectionW);
+                    byte kingTo = (byte)(sq + BoardUtils.DirectionW + BoardUtils.DirectionW);
+                    byte intermediate = (byte)(sq + BoardUtils.DirectionW + BoardUtils.DirectionW + BoardUtils.DirectionW);
+                    // check if all squares are empty
+                    if ((m_Pieces[rookTo].AsPiece() & Piece.PieceMask) == Piece.Empty && (m_Pieces[kingTo].AsPiece() & Piece.PieceMask) == Piece.Empty && (m_Pieces[intermediate].AsPiece() & Piece.PieceMask) == Piece.Empty)
+                    {
+                        moves->Add(MoveUtils.ConstructQuietMove(sq, kingTo) | Move.CastleOOO, MoveList.CastlePriority);
+                    }
+                }
+            }
         }
-        
-        // castle OO
-        
-        // castle OOO
         
         return moves->Count;
     }

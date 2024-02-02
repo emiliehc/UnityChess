@@ -157,4 +157,15 @@ public unsafe class BoardTest
         int manhattanDistance = BoardUtils.GetManhattanDistance(from, to);
         Console.WriteLine(manhattanDistance);
     }
+    
+    private const string castleOnlyFen = "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1";
+    
+    [Test]
+    public void CastleTest()
+    {
+        Board b = new Board(castleOnlyFen);
+        MoveList moveList = new MoveList();
+        int count = b.GenerateMoves(&moveList);
+        Console.WriteLine(count);
+    }
 }
