@@ -137,6 +137,26 @@ public static class BoardUtils
     public const int DirectionNWW = DirectionN + DirectionW + DirectionW;
     public const int DirectionNNW = DirectionNN + DirectionW;
     
+    public static readonly int[] KnightMoves = new int[]
+    {
+        DirectionNNE, DirectionNEE, DirectionSEE, DirectionSSE, DirectionSSW, DirectionSWW, DirectionNWW, DirectionNNW
+    };
+    
+    public static readonly int[] KingMoves = new int[]
+    {
+        DirectionN, DirectionNE, DirectionE, DirectionSE, DirectionS, DirectionSW, DirectionW, DirectionNW
+    };
+    
+    public static readonly int[] WhitePawnAttackMoves = new int[]
+    {
+        DirectionNE, DirectionNW
+    };
+    
+    public static readonly int[] BlackPawnAttackMoves = new int[]
+    {
+        DirectionSE, DirectionSW
+    };
+    
     // algebraic notation helpers
     private static readonly string[] Files = new string[] { "a", "b", "c", "d", "e", "f", "g", "h" };
     private static readonly string[] Ranks = new string[] { "1", "2", "3", "4", "5", "6", "7", "8" };
@@ -284,15 +304,21 @@ public static class MoveUtils
     
     public static Move ConstructQuietMove(byte from, byte to)
     {
-        return (Move) (((to & BoardUtils.Square0X88RankMask) << 5) | ((to & BoardUtils.Square0X88FileMask) << 6) | ((from & BoardUtils.Square0X88RankMask) >> 1) | (from & BoardUtils.Square0X88FileMask));
+        unchecked
+        {
+            return (Move) (((to & BoardUtils.Square0X88RankMask) << 5) | ((to & BoardUtils.Square0X88FileMask) << 6) | ((from & BoardUtils.Square0X88RankMask) >> 1) | (from & BoardUtils.Square0X88FileMask));
+        }
     }
     
     public static void DeconstructMove(Move move, out byte from, out byte to)
     {
-        byte moveFrom = (byte)(move & Move.FromMask);
-        byte moveTo = (byte)((int)(move & Move.ToMask) >> 6);
-        from = (byte)((moveFrom & BoardUtils.Square0X88FileMask) | ((moveFrom << 1) & BoardUtils.Square0X88RankMask));
-        to = (byte)((moveTo & BoardUtils.Square0X88FileMask) | ((moveTo << 1) & BoardUtils.Square0X88RankMask));
+        unchecked
+        {
+            byte moveFrom = (byte)(move & Move.FromMask);
+            byte moveTo = (byte)((int)(move & Move.ToMask) >> 6);
+            from = (byte)((moveFrom & BoardUtils.Square0X88FileMask) | ((moveFrom << 1) & BoardUtils.Square0X88RankMask));
+            to = (byte)((moveTo & BoardUtils.Square0X88FileMask) | ((moveTo << 1) & BoardUtils.Square0X88RankMask));
+        }
     }
 }
 
@@ -376,49 +402,105 @@ public unsafe struct Board
         m_HalfMoveClock = ushort.Parse(parts[4]);
         m_FullMoveNumber = ushort.Parse(parts[5]);
     }
+
+    public Move GenerateSinglePawnPush(byte from, byte to)
+    {
+        return MoveUtils.ConstructQuietMove(from, to);
+    }
     
-    public int GeneratePawnMoves(Move* moves, int capacity)
+    public Move GenerateDoublePawnPush(byte from, byte to)
+    {
+        return MoveUtils.ConstructQuietMove(from, to) | Move.DoublePawnPush;
+    }
+
+    public int GenerateMoves(Move* moves)
     {
         int count = 0;
+        Piece currentColor = m_SideToMove == SideToMove.White ? Piece.White : Piece.Black;
+        int pawnPushDirection = m_SideToMove == SideToMove.White ? BoardUtils.DirectionN : BoardUtils.DirectionS;
+        byte pawnStartRank = m_SideToMove == SideToMove.White ? BoardUtils.Rank2 : BoardUtils.Rank7;
+        byte pawnPromotionRank = m_SideToMove == SideToMove.White ? BoardUtils.Rank8 : BoardUtils.Rank1;
+        int[] pawnAttackMoves = m_SideToMove == SideToMove.White ? BoardUtils.WhitePawnAttackMoves : BoardUtils.BlackPawnAttackMoves;
+        
         // for current side to move
-        if (m_SideToMove == SideToMove.White)
+        // for each square
+        for (byte sq = 0; sq < 128; sq++)
         {
-            // white pawns
-            for (byte square = 0; square < 128; square++)
+            if (sq % 16 >= 8)
             {
-                if (!BoardUtils.IsSquareValid(square)) continue;
-                Piece piece = m_Pieces[square].AsPiece();
-                if ((piece & Piece.PieceColorMask) != PieceUtils.WhitePawn) continue;
-                byte rank = BoardUtils.GetRank(square);
-                
-                // single push, only if target square is empty
-                byte targetSquare = (byte)(square + BoardUtils.DirectionN);
-                if ((m_Pieces[targetSquare].AsPiece() & Piece.PieceColorMask) == Piece.Empty)
+                sq += 7;
+                continue;
+            }
+            
+            Piece piece = m_Pieces[sq].AsPiece();
+            if (piece == Piece.Empty || (piece & Piece.ColorMask) != currentColor)
+            {
+                continue;
+            }
+            
+            // pawn
+            if ((piece & Piece.PieceColorMask) == (Piece.Pawn | currentColor))
+            {
+                // single push, quiet move, unless a step away from the pawn promotion rank, then promotion
                 {
-                    if (count < capacity)
+                    byte to = (byte)(sq + pawnPushDirection);
+                    if ((m_Pieces[to].AsPiece() & Piece.PieceMask) == Piece.Empty)
                     {
-                        moves[count] = MoveUtils.ConstructQuietMove(square, targetSquare);
-                        count++;
+                        if (BoardUtils.GetRank(to) == pawnPromotionRank)
+                        {
+                            moves[count++] = GenerateSinglePawnPush(sq, to) | Move.QueenPromotion;
+                            moves[count++] = GenerateSinglePawnPush(sq, to) | Move.RookPromotion;
+                            moves[count++] = GenerateSinglePawnPush(sq, to) | Move.BishopPromotion;
+                            moves[count++] = GenerateSinglePawnPush(sq, to) | Move.KnightPromotion;
+                        }
+                        else
+                        {
+                            moves[count++] = GenerateSinglePawnPush(sq, to);
+                        }
                     }
-                    else
+                }
+                
+                // double push, special double pawn push move
+                if (BoardUtils.GetRank(sq) == pawnStartRank)
+                {
+                    byte enPassantTarget = (byte)(sq + pawnPushDirection);
+                    byte to = (byte)(enPassantTarget + pawnPushDirection);
+                    if ((m_Pieces[enPassantTarget].AsPiece() & Piece.PieceMask) == Piece.Empty && (m_Pieces[to].AsPiece() & Piece.PieceMask) == Piece.Empty)
                     {
-                        return count;
+                        moves[count++] = GenerateDoublePawnPush(sq, to);
+                    }
+                }
+                
+                // pawn captures, unless a step away from the pawn promotion rank, then promotion capture
+                foreach (int pawnAttackMove in pawnAttackMoves)
+                {
+                    byte to = (byte)(sq + pawnAttackMove);
+                    if (BoardUtils.IsSquareValid(to) && (m_Pieces[to].AsPiece() & Piece.ColorMask) != currentColor && (m_Pieces[to].AsPiece() & Piece.PieceMask) != Piece.Empty)
+                    {
+                        // king
+                        if ((m_Pieces[to].AsPiece() & Piece.PieceMask) == Piece.King)
+                        {
+                            // forced to capture the king
+                            moves[0] = MoveUtils.ConstructQuietMove(sq, to) | Move.Capture;
+                            return 1;
+                        }
+                        if (BoardUtils.GetRank(to) == pawnPromotionRank)
+                        {
+                            moves[count++] = MoveUtils.ConstructQuietMove(sq, to) | Move.QueenPromotionCapture;
+                            moves[count++] = MoveUtils.ConstructQuietMove(sq, to) | Move.RookPromotionCapture;
+                            moves[count++] = MoveUtils.ConstructQuietMove(sq, to) | Move.BishopPromotionCapture;
+                            moves[count++] = MoveUtils.ConstructQuietMove(sq, to) | Move.KnightPromotionCapture;
+                        }
+                        else
+                        {
+                            moves[count++] = MoveUtils.ConstructQuietMove(sq, to) | Move.Capture;
+                        }
                     }
                 }
             }
         }
-        else
-        {
-
-        }
-
+        
         return count;
-    }
-
-    public int GenerateMoves(Move* moves, int capacity)
-    {
-        // for current side to move
-        return 0;
     }
 
     public string Fen

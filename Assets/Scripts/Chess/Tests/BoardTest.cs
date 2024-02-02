@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using NUnit.Framework;
 
-public class BoardTest
+public unsafe class BoardTest
 {
     [Test]
     public void PieceTest()
@@ -138,5 +138,15 @@ public class BoardTest
             Assert.AreEqual(BoardUtils.SquareAlgebraicTo0X88("a1"), from);
             Assert.AreEqual(BoardUtils.SquareAlgebraicTo0X88("h8"), to);
         }
+    }
+
+    [Test]
+    public void MoveGenTest()
+    {
+        Board b = new Board("rnbqkbnr/PPPPpPPP/8/8/8/8/8/RNBQKBNR w KQkq - 0 1");
+        int numMoves = 256;
+        Move* moves = stackalloc Move[numMoves];
+        int count = b.GenerateMoves(moves);
+        Console.WriteLine(count);
     }
 }
