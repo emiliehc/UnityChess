@@ -180,4 +180,25 @@ public unsafe class BoardTest
             Console.WriteLine(BoardUtils.GetMoveDescriptionWithBoard(b, move));
         }
     }
+    
+    private const string mixedFen = "r3k2r/pPpp1ppp/8/4pP2/4P3/8/PPPP2PP/R3K2R w KQkq e6 0 2";
+    // 33 coups possibles, trait aux blancs
+
+    [Test]
+    public void PromotionEnPassantTest()
+    {
+        Board b = new Board(mixedFen);
+        MoveList moveList = new MoveList();
+        int count = b.GenerateMoves(&moveList);
+        Console.WriteLine(count);
+        
+        // iterate through the move list
+        for (int i = 0; i < count; i++)
+        {
+            Move move = moveList.Take();
+            Console.WriteLine(BoardUtils.GetMoveDescriptionWithBoard(b, move));
+        }
+        
+        Assert.AreEqual(33, count);
+    }
 }

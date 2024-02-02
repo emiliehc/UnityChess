@@ -262,7 +262,7 @@ public static class BoardUtils
         // promotion ?
         if ((move & Move.MoveTypeMask) >= Move.KnightPromotion)
         {
-            desc += " promotion" + (move & Move.MoveTypeMask) switch
+            desc += " promotion" + (move & Move.PromotionMask) switch
             {
                 Move.KnightPromotion => " knight",
                 Move.BishopPromotion => " bishop",
@@ -304,7 +304,7 @@ public static class BoardUtils
         // promotion ?
         if ((move & Move.MoveTypeMask) >= Move.KnightPromotion)
         {
-            desc += " promotion" + (move & Move.MoveTypeMask) switch
+            desc += " promotion" + (move & Move.PromotionMask) switch
             {
                 Move.KnightPromotion => " knight",
                 Move.BishopPromotion => " bishop",
@@ -315,7 +315,7 @@ public static class BoardUtils
         }
         
         // capture ?
-        if ((move & Move.MoveTypeMask) == Move.Capture)
+        if ((move & Move.Capture) != 0)
         {
             desc += " capture";
         }
@@ -371,6 +371,7 @@ public enum Move : ushort
     RookPromotionCapture = 0b_1110___000_000__000_000,
     QueenPromotionCapture = 0b_1111___000_000__000_000,
     
+    PromotionMask = 0b_1011___000_000__000_000,
     MoveTypeMask = 0b_1111___000_000__000_000,
 }
 
