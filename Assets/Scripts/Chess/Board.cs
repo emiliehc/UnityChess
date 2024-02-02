@@ -757,6 +757,150 @@ public unsafe struct Board
         
         return moves->Count;
     }
+    
+    public void MakeMove(Move move)
+    {
+        // quiet move
+        bool halfMoveClockReset = false;
+        MoveUtils.DeconstructMove(move, out byte from, out byte to);
+        Move moveType = move & Move.MoveTypeMask;
+        int pawnPushDirection = m_SideToMove == SideToMove.White ? BoardUtils.DirectionN : BoardUtils.DirectionS;
+        Piece sideToMoveFlag = m_SideToMove == SideToMove.White ? Piece.White : Piece.Black;
+        
+        switch (moveType)
+        {
+            case Move.QuietMove:
+                // is it pawn push
+                if ((m_Pieces[from].AsPiece() & Piece.PieceMask) == Piece.Pawn)
+                {
+                    halfMoveClockReset = true;
+                }
+                // no capture, no promotion, no en passant, no castle
+                m_Pieces[to] = m_Pieces[from];
+                m_Pieces[from] = Piece.Empty.AsByte();
+                break;
+            case Move.DoublePawnPush:
+                // double pawn push
+                m_Pieces[to] = m_Pieces[from];
+                m_Pieces[from] = Piece.Empty.AsByte();
+                m_EnPassantTargetSquare = (byte)(from + (to - from) / 2);
+                halfMoveClockReset = true;
+                break;
+            case Move.CastleOO:
+                // O-O
+                // move king from from square to to square
+                m_Pieces[to] = m_Pieces[from];
+                m_Pieces[from] = Piece.Empty.AsByte();
+                // move rook to the west of the king
+                m_Pieces[to + BoardUtils.DirectionW] = m_Pieces[to + BoardUtils.DirectionE];
+                m_Pieces[to + BoardUtils.DirectionE] = Piece.Empty.AsByte();
+                // remove castling rights
+                if (m_SideToMove == SideToMove.White)
+                {
+                    m_WhiteCanCastleOO = false;
+                    m_WhiteCanCastleOOO = false;
+                }
+                else
+                {
+                    m_BlackCanCastleOO = false;
+                    m_BlackCanCastleOOO = false;
+                }
+                break;
+            case Move.CastleOOO:
+                // O-O-O
+                // move king from from square to to square
+                m_Pieces[to] = m_Pieces[from];
+                m_Pieces[from] = Piece.Empty.AsByte();
+                // move rook to the east of the king
+                m_Pieces[to + BoardUtils.DirectionE] = m_Pieces[to + BoardUtils.DirectionW + BoardUtils.DirectionW];
+                m_Pieces[to + BoardUtils.DirectionW + BoardUtils.DirectionW] = Piece.Empty.AsByte();
+                // remove castling rights
+                if (m_SideToMove == SideToMove.White)
+                {
+                    m_WhiteCanCastleOO = false;
+                    m_WhiteCanCastleOOO = false;
+                }
+                else
+                {
+                    m_BlackCanCastleOO = false;
+                    m_BlackCanCastleOOO = false;
+                }
+                break;
+            case Move.Capture:
+                // capture
+                m_Pieces[to] = m_Pieces[from];
+                m_Pieces[from] = Piece.Empty.AsByte();
+                halfMoveClockReset = true;
+                break;
+            case Move.EnPassantCapture:
+                // en passant capture
+                m_Pieces[to] = m_Pieces[from];
+                m_Pieces[from] = Piece.Empty.AsByte();
+                m_Pieces[to - pawnPushDirection] = Piece.Empty.AsByte();
+                m_EnPassantTargetSquare = BoardUtils.InvalidSquare;
+                halfMoveClockReset = true;
+                break;
+            case Move.KnightPromotion:
+                m_Pieces[to] = (Piece.Knight | sideToMoveFlag).AsByte();
+                m_Pieces[from] = Piece.Empty.AsByte();
+                break;
+            case Move.BishopPromotion:
+                m_Pieces[to] = (Piece.Bishop | sideToMoveFlag).AsByte();
+                m_Pieces[from] = Piece.Empty.AsByte();
+                break;
+            case Move.RookPromotion:
+                m_Pieces[to] = (Piece.Rook | sideToMoveFlag).AsByte();
+                m_Pieces[from] = Piece.Empty.AsByte();
+                break;
+            case Move.QueenPromotion:
+                m_Pieces[to] = (Piece.Queen | sideToMoveFlag).AsByte();
+                m_Pieces[from] = Piece.Empty.AsByte();
+                break;
+            case Move.KnightPromotionCapture:
+                m_Pieces[to] = (Piece.Knight | sideToMoveFlag).AsByte();
+                m_Pieces[from] = Piece.Empty.AsByte();
+                halfMoveClockReset = true;
+                break;
+            case Move.BishopPromotionCapture:
+                m_Pieces[to] = (Piece.Bishop | sideToMoveFlag).AsByte();
+                m_Pieces[from] = Piece.Empty.AsByte();
+                halfMoveClockReset = true;
+                break;
+            case Move.RookPromotionCapture:
+                m_Pieces[to] = (Piece.Rook | sideToMoveFlag).AsByte();
+                m_Pieces[from] = Piece.Empty.AsByte();
+                halfMoveClockReset = true;
+                break;
+            case Move.QueenPromotionCapture:
+                m_Pieces[to] = (Piece.Queen | sideToMoveFlag).AsByte();
+                m_Pieces[from] = Piece.Empty.AsByte();
+                halfMoveClockReset = true;
+                break;
+        }
+        
+        if (moveType != Move.DoublePawnPush)
+        {
+            m_EnPassantTargetSquare = BoardUtils.InvalidSquare;
+        }
+        
+        // move number and half move clock
+        if (m_SideToMove == SideToMove.Black)
+        {
+            m_FullMoveNumber++;
+        }
+
+        if (halfMoveClockReset)
+        {
+            m_HalfMoveClock = 0;
+        }
+        else
+        {
+            m_HalfMoveClock++;
+        }
+        
+        // flip side to move
+        m_SideToMove = m_SideToMove == SideToMove.White ? SideToMove.Black : SideToMove.White;
+    }
 
     public string Fen
     {
