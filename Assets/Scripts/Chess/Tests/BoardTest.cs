@@ -58,8 +58,85 @@ public class BoardTest
     [Test]
     public void BoardInitializationTest()
     {
-        string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        const string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         Board board = new Board(fen);
         Assert.AreEqual(fen, board.Fen);
+    }
+
+    [Test]
+    public void BoardSquareValidityTest()
+    {
+        {
+            byte square = BoardUtils.SquareAlgebraicTo0X88("b1"); // knight on b1
+            byte validSquare1 = (byte)(square + BoardUtils.DirectionNNE);
+            Assert.AreEqual("c3", BoardUtils.Square0X88ToAlgebraic(validSquare1));
+            Assert.IsTrue(BoardUtils.IsSquareValid(validSquare1));
+
+            byte invalidSquare1 = (byte)(square + BoardUtils.DirectionSEE);
+            byte invalidSquare2 = (byte)(square + BoardUtils.DirectionSSE);
+            byte invalidSquare3 = (byte)(square + BoardUtils.DirectionSSW);
+            byte invalidSquare4 = (byte)(square + BoardUtils.DirectionSWW);
+            byte invalidSquare5 = (byte)(square + BoardUtils.DirectionNWW);
+
+            // assert invalid squares
+            Assert.IsFalse(BoardUtils.IsSquareValid(invalidSquare1));
+            Assert.IsFalse(BoardUtils.IsSquareValid(invalidSquare2));
+            Assert.IsFalse(BoardUtils.IsSquareValid(invalidSquare3));
+            Assert.IsFalse(BoardUtils.IsSquareValid(invalidSquare4));
+            Assert.IsFalse(BoardUtils.IsSquareValid(invalidSquare5));
+
+            byte validSquare2 = (byte)(square + BoardUtils.DirectionNNW);
+            Assert.AreEqual("a3", BoardUtils.Square0X88ToAlgebraic(validSquare2));
+            Assert.IsTrue(BoardUtils.IsSquareValid(validSquare2));
+        }
+        {
+            byte square = BoardUtils.SquareAlgebraicTo0X88("g8"); // knight on g8
+            byte invalidSquare1 = (byte)(square + BoardUtils.DirectionNNE);
+            byte invalidSquare2 = (byte)(square + BoardUtils.DirectionNEE);
+            byte invalidSquare3 = (byte)(square + BoardUtils.DirectionSEE);
+            byte validSquare1 = (byte)(square + BoardUtils.DirectionSSE);
+            byte validSquare2 = (byte)(square + BoardUtils.DirectionSSW);
+            byte invalidSquare4 = (byte)(square + BoardUtils.DirectionNNW);
+            byte invalidSquare5 = (byte)(square + BoardUtils.DirectionNWW);
+            
+            // assert invalid squares
+            Assert.IsFalse(BoardUtils.IsSquareValid(invalidSquare1));
+            Assert.IsFalse(BoardUtils.IsSquareValid(invalidSquare2));
+            Assert.IsFalse(BoardUtils.IsSquareValid(invalidSquare3));
+            Assert.IsFalse(BoardUtils.IsSquareValid(invalidSquare4));
+            Assert.IsFalse(BoardUtils.IsSquareValid(invalidSquare5));
+            
+            // assert valid squares
+            Assert.IsTrue(BoardUtils.IsSquareValid(validSquare1));
+            Assert.IsTrue(BoardUtils.IsSquareValid(validSquare2));
+            
+            Assert.AreEqual("h6", BoardUtils.Square0X88ToAlgebraic(validSquare1));
+            Assert.AreEqual("f6", BoardUtils.Square0X88ToAlgebraic(validSquare2));
+        }
+    }
+    
+    [Test]
+    public void QuietMoveConstructDeconstructTest()
+    {
+        Move move = MoveUtils.ConstructQuietMove(BoardUtils.SquareAlgebraicTo0X88("e2"), BoardUtils.SquareAlgebraicTo0X88("e3"));
+        {
+            MoveUtils.DeconstructMove(move, out byte from, out byte to);
+            Assert.AreEqual(BoardUtils.SquareAlgebraicTo0X88("e2"), from);
+            Assert.AreEqual(BoardUtils.SquareAlgebraicTo0X88("e3"), to);
+        }
+        
+        move = MoveUtils.ConstructQuietMove(BoardUtils.SquareAlgebraicTo0X88("e7"), BoardUtils.SquareAlgebraicTo0X88("e5"));
+        {
+            MoveUtils.DeconstructMove(move, out byte from, out byte to);
+            Assert.AreEqual(BoardUtils.SquareAlgebraicTo0X88("e7"), from);
+            Assert.AreEqual(BoardUtils.SquareAlgebraicTo0X88("e5"), to);
+        }
+        
+        move = MoveUtils.ConstructQuietMove(BoardUtils.SquareAlgebraicTo0X88("a1"), BoardUtils.SquareAlgebraicTo0X88("h8"));
+        {
+            MoveUtils.DeconstructMove(move, out byte from, out byte to);
+            Assert.AreEqual(BoardUtils.SquareAlgebraicTo0X88("a1"), from);
+            Assert.AreEqual(BoardUtils.SquareAlgebraicTo0X88("h8"), to);
+        }
     }
 }

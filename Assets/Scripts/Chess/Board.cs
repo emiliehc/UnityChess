@@ -211,6 +211,9 @@ public static class BoardUtils
     {
         return (Piece)piece;
     }
+    
+    public const byte Square0X88FileMask = 0b_0000_0111;
+    public const byte Square0X88RankMask = 0b_0111_0000;
 }
 
 /// <summary>
@@ -247,7 +250,7 @@ public enum Move : ushort
     MoveTypeMask = 0b_1111___000_000__000_000,
 }
 
-public static class MoveTypeHelpers
+public static class MoveUtils
 {
     public static bool IsQuietMove(Move move)
     {
@@ -277,6 +280,19 @@ public static class MoveTypeHelpers
     public static bool IsEnPassantCapture(Move move)
     {
         return (move & Move.MoveTypeMask) == Move.EnPassantCapture;
+    }
+    
+    public static Move ConstructQuietMove(byte from, byte to)
+    {
+        return (Move) (((to & BoardUtils.Square0X88RankMask) << 5) | ((to & BoardUtils.Square0X88FileMask) << 6) | ((from & BoardUtils.Square0X88RankMask) >> 1) | (from & BoardUtils.Square0X88FileMask));
+    }
+    
+    public static void DeconstructMove(Move move, out byte from, out byte to)
+    {
+        byte moveFrom = (byte)(move & Move.FromMask);
+        byte moveTo = (byte)((int)(move & Move.ToMask) >> 6);
+        from = (byte)((moveFrom & BoardUtils.Square0X88FileMask) | ((moveFrom << 1) & BoardUtils.Square0X88RankMask));
+        to = (byte)((moveTo & BoardUtils.Square0X88FileMask) | ((moveTo << 1) & BoardUtils.Square0X88RankMask));
     }
 }
 
@@ -360,10 +376,48 @@ public unsafe struct Board
         m_HalfMoveClock = ushort.Parse(parts[4]);
         m_FullMoveNumber = ushort.Parse(parts[5]);
     }
+    
+    public int GeneratePawnMoves(Move* moves, int capacity)
+    {
+        int count = 0;
+        // for current side to move
+        if (m_SideToMove == SideToMove.White)
+        {
+            // white pawns
+            for (byte square = 0; square < 128; square++)
+            {
+                if (!BoardUtils.IsSquareValid(square)) continue;
+                Piece piece = m_Pieces[square].AsPiece();
+                if ((piece & Piece.PieceColorMask) != PieceUtils.WhitePawn) continue;
+                byte rank = BoardUtils.GetRank(square);
+                
+                // single push, only if target square is empty
+                byte targetSquare = (byte)(square + BoardUtils.DirectionN);
+                if ((m_Pieces[targetSquare].AsPiece() & Piece.PieceColorMask) == Piece.Empty)
+                {
+                    if (count < capacity)
+                    {
+                        moves[count] = MoveUtils.ConstructQuietMove(square, targetSquare);
+                        count++;
+                    }
+                    else
+                    {
+                        return count;
+                    }
+                }
+            }
+        }
+        else
+        {
+
+        }
+
+        return count;
+    }
 
     public int GenerateMoves(Move* moves, int capacity)
     {
-        
+        // for current side to move
         return 0;
     }
 
