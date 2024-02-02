@@ -137,6 +137,20 @@ public static class BoardUtils
     public const int DirectionNWW = DirectionN + DirectionW + DirectionW;
     public const int DirectionNNW = DirectionNN + DirectionW;
     
+    public static readonly Piece[] SlidingPieces = new Piece[]
+    {
+        Piece.Bishop, Piece.Rook, Piece.Queen
+    };
+
+    public static readonly int[][] SlidingPieceDirections = new int[16][];
+    
+    static BoardUtils()
+    {
+        SlidingPieceDirections[(int) Piece.Bishop] = BishopSlideDirections;
+        SlidingPieceDirections[(int) Piece.Rook] = RookSlideDirections;
+        SlidingPieceDirections[(int) Piece.Queen] = QueenSlideDirections;
+    }
+    
     public static readonly int[] KnightMoves = new int[]
     {
         DirectionNNE, DirectionNEE, DirectionSEE, DirectionSSE, DirectionSSW, DirectionSWW, DirectionNWW, DirectionNNW
@@ -644,9 +658,13 @@ public unsafe struct Board
                     }
                 }
             }
-            else if ((piece & Piece.PieceColorMask) == (Piece.Bishop | currentColor))
+            else if ((piece & Piece.PieceColorMask) == (Piece.Bishop | currentColor) || (piece & Piece.PieceColorMask) == (Piece.Queen | currentColor) || (piece & Piece.PieceColorMask) == (Piece.Rook | currentColor))
             {
-                foreach (int direction in BoardUtils.BishopSlideDirections)
+                Piece pieceCode = piece & Piece.PieceMask;
+                
+                int[] slidingDirections = BoardUtils.SlidingPieceDirections[(int)pieceCode];
+                
+                foreach (int direction in slidingDirections)
                 {
                     int to = sq + direction;
                     while (BoardUtils.IsSquareValid((byte)to))
@@ -654,7 +672,7 @@ public unsafe struct Board
                         // see if empty
                         if ((m_Pieces[to].AsPiece() & Piece.PieceMask) == Piece.Empty)
                         {
-                            moves->Add(MoveUtils.ConstructQuietMove(sq, (byte)to), MoveList.BishopMovePriority);
+                            moves->Add(MoveUtils.ConstructQuietMove(sq, (byte)to), 3);
                         }
                         else
                         {
@@ -670,75 +688,7 @@ public unsafe struct Board
                                     return 1;
                                 }
                                 
-                                moves->Add(MoveUtils.ConstructQuietMove(sq, (byte)to) | Move.Capture, MoveList.BishopCapturePriority);
-                            }
-                            break;
-                        }
-                        to += direction;
-                    }
-                }
-            }
-            else if ((piece & Piece.PieceColorMask) == (Piece.Rook | currentColor))
-            {
-                foreach (int direction in BoardUtils.RookSlideDirections)
-                {
-                    int to = sq + direction;
-                    while (BoardUtils.IsSquareValid((byte)to))
-                    {
-                        // see if empty
-                        if ((m_Pieces[to].AsPiece() & Piece.PieceMask) == Piece.Empty)
-                        {
-                            moves->Add(MoveUtils.ConstructQuietMove(sq, (byte)to), MoveList.RookMovePriority);
-                        }
-                        else
-                        {
-                            // see if capture
-                            if ((m_Pieces[to].AsPiece() & Piece.ColorMask) != currentColor)
-                            {
-                                // king ?
-                                if ((m_Pieces[to].AsPiece() & Piece.PieceMask) == Piece.King)
-                                {
-                                    // forced to capture the king
-                                    moves->Clear();
-                                    moves->Add(MoveUtils.ConstructQuietMove(sq, (byte)to) | Move.Capture, 0);
-                                    return 1;
-                                }
-                                
-                                moves->Add(MoveUtils.ConstructQuietMove(sq, (byte)to) | Move.Capture, MoveList.RookCapturePriority);
-                            }
-                            break;
-                        }
-                        to += direction;
-                    }
-                }
-            }
-            else if ((piece & Piece.PieceColorMask) == (Piece.Queen | currentColor))
-            {
-                foreach (int direction in BoardUtils.QueenSlideDirections)
-                {
-                    int to = sq + direction;
-                    while (BoardUtils.IsSquareValid((byte)to))
-                    {
-                        // see if empty
-                        if ((m_Pieces[to].AsPiece() & Piece.PieceMask) == Piece.Empty)
-                        {
-                            moves->Add(MoveUtils.ConstructQuietMove(sq, (byte)to), MoveList.QueenMovePriority);
-                        }
-                        else
-                        {
-                            // see if capture
-                            if ((m_Pieces[to].AsPiece() & Piece.ColorMask) != currentColor)
-                            {
-                                // king ?
-                                if ((m_Pieces[to].AsPiece() & Piece.PieceMask) == Piece.King)
-                                {
-                                    // forced to capture the king
-                                    moves->Clear();
-                                    moves->Add(MoveUtils.ConstructQuietMove(sq, (byte)to) | Move.Capture, 0);
-                                    return 1;
-                                }
-                                
-                                moves->Add(MoveUtils.ConstructQuietMove(sq, (byte)to) | Move.Capture, MoveList.QueenCapturePriority);
+                                moves->Add(MoveUtils.ConstructQuietMove(sq, (byte)to) | Move.Capture, 2);
                             }
                             break;
                         }
