@@ -4,6 +4,8 @@ using NUnit.Framework;
 
 public unsafe class BoardTest
 {
+    private const string startingFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    
     [Test]
     public void PieceTest()
     {
@@ -143,7 +145,7 @@ public unsafe class BoardTest
     [Test]
     public void MoveGenTest()
     {
-        Board b = new Board("rnbqkbnr/pppp1ppp/8/3Pp3/8/P7/1PPPPPPP/RNBQKBNR w KQkq e6 0 2");
+        Board b = new Board(startingFen);
         int numMoves = 256;
         Move* moves = stackalloc Move[numMoves];
         MoveList moveList = new MoveList();

@@ -13,6 +13,8 @@ public unsafe struct MoveList
     public const int PawnCapturePriority = 5;
     public const int CapturePromotionPriority = 1;
     public const int DoublePawnPushPriority = 3;
+    public const int KnightMovePriority = 6;
+    public const int KnightCapture = 4;
     
     [StructLayout(LayoutKind.Explicit, Size = 4)]
     private struct MoveQueueItem

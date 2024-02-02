@@ -512,7 +512,41 @@ public unsafe struct Board
                     }
                 }
             }
+            else if ((piece & Piece.PieceColorMask) == (Piece.Knight | currentColor))
+            {
+                foreach (int knightMove in BoardUtils.KnightMoves)
+                {
+                    byte to = (byte)(sq + knightMove);
+                    if (!BoardUtils.IsSquareValid(to)) continue;
+                    // see if empty
+                    if ((m_Pieces[to].AsPiece() & Piece.PieceMask) == Piece.Empty)
+                    {
+                        moves->Add(MoveUtils.ConstructQuietMove(sq, to), MoveList.KnightMovePriority);
+                    }
+                    else
+                    {
+                        // see if capture
+                        if ((m_Pieces[to].AsPiece() & Piece.ColorMask) != currentColor)
+                        {
+                            // king ?
+                            if ((m_Pieces[to].AsPiece() & Piece.PieceMask) == Piece.King)
+                            {
+                                // forced to capture the king
+                                moves->Clear();
+                                moves->Add(MoveUtils.ConstructQuietMove(sq, to) | Move.Capture, 0);
+                                return 1;
+                            }
+                                
+                            moves->Add(MoveUtils.ConstructQuietMove(sq, to) | Move.Capture, MoveList.KnightCapture);
+                        }
+                    }
+                }
+            }
         }
+        
+        // castle OO
+        
+        // castle OOO
         
         return moves->Count;
     }
