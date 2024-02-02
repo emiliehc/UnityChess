@@ -143,10 +143,16 @@ public unsafe class BoardTest
     [Test]
     public void MoveGenTest()
     {
-        Board b = new Board("rnbqkbnr/PPPPpPPP/8/8/8/8/8/RNBQKBNR w KQkq - 0 1");
+        Board b = new Board("rnbqkbnr/pppp1ppp/8/3Pp3/8/P7/1PPPPPPP/RNBQKBNR w KQkq e6 0 2");
         int numMoves = 256;
         Move* moves = stackalloc Move[numMoves];
-        int count = b.GenerateMoves(moves);
+        MoveList moveList = new MoveList();
+        int count = b.GenerateMoves(&moveList);
         Console.WriteLine(count);
+        
+        byte from = BoardUtils.SquareAlgebraicTo0X88("a7");
+        byte to = BoardUtils.SquareAlgebraicTo0X88("h3");
+        int manhattanDistance = BoardUtils.GetManhattanDistance(from, to);
+        Console.WriteLine(manhattanDistance);
     }
 }
