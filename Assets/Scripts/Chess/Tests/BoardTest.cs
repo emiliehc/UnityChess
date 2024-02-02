@@ -201,4 +201,20 @@ public unsafe class BoardTest
         
         Assert.AreEqual(33, count);
     }
+
+    [Test]
+    public void MultiMoveTest()
+    {
+        Board b = new Board(startingFen);
+        Console.WriteLine(b.Fen);
+        for (int i = 0; i < 3; i++)
+        {
+            MoveList moveList = new();
+            int count = b.GenerateMoves(&moveList);
+            Move move = moveList.Take();
+            Console.WriteLine(BoardUtils.GetMoveDescriptionWithBoard(b, move));
+            b.MakeMove(move);
+            Console.WriteLine(b.Fen);
+        }
+    }
 }
