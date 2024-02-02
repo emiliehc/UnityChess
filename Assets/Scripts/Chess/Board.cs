@@ -157,6 +157,21 @@ public static class BoardUtils
         DirectionSE, DirectionSW
     };
     
+    public static readonly int[] BishopSlideDirections = new int[]
+    {
+        DirectionNE, DirectionSE, DirectionSW, DirectionNW
+    };
+    
+    public static readonly int[] RookSlideDirections = new int[]
+    {
+        DirectionN, DirectionE, DirectionS, DirectionW
+    };
+    
+    public static readonly int[] QueenSlideDirections = new int[]
+    {
+        DirectionNE, DirectionSE, DirectionSW, DirectionNW, DirectionN, DirectionE, DirectionS, DirectionW
+    };  
+    
     // algebraic notation helpers
     private static readonly string[] Files = new string[] { "a", "b", "c", "d", "e", "f", "g", "h" };
     private static readonly string[] Ranks = new string[] { "1", "2", "3", "4", "5", "6", "7", "8" };
@@ -546,15 +561,105 @@ public unsafe struct Board
             }
             else if ((piece & Piece.PieceColorMask) == (Piece.Bishop | currentColor))
             {
-                // bishop
+                foreach (int direction in BoardUtils.BishopSlideDirections)
+                {
+                    int to = sq + direction;
+                    while (BoardUtils.IsSquareValid((byte)to))
+                    {
+                        // see if empty
+                        if ((m_Pieces[to].AsPiece() & Piece.PieceMask) == Piece.Empty)
+                        {
+                            moves->Add(MoveUtils.ConstructQuietMove(sq, (byte)to), MoveList.BishopMovePriority);
+                        }
+                        else
+                        {
+                            // see if capture
+                            if ((m_Pieces[to].AsPiece() & Piece.ColorMask) != currentColor)
+                            {
+                                // king ?
+                                if ((m_Pieces[to].AsPiece() & Piece.PieceMask) == Piece.King)
+                                {
+                                    // forced to capture the king
+                                    moves->Clear();
+                                    moves->Add(MoveUtils.ConstructQuietMove(sq, (byte)to) | Move.Capture, 0);
+                                    return 1;
+                                }
+                                
+                                moves->Add(MoveUtils.ConstructQuietMove(sq, (byte)to) | Move.Capture, MoveList.BishopCapturePriority);
+                            }
+                            break;
+                        }
+                        to += direction;
+                    }
+                }
             }
             else if ((piece & Piece.PieceColorMask) == (Piece.Rook | currentColor))
             {
-                // rook
+                foreach (int direction in BoardUtils.RookSlideDirections)
+                {
+                    int to = sq + direction;
+                    while (BoardUtils.IsSquareValid((byte)to))
+                    {
+                        // see if empty
+                        if ((m_Pieces[to].AsPiece() & Piece.PieceMask) == Piece.Empty)
+                        {
+                            moves->Add(MoveUtils.ConstructQuietMove(sq, (byte)to), MoveList.RookMovePriority);
+                        }
+                        else
+                        {
+                            // see if capture
+                            if ((m_Pieces[to].AsPiece() & Piece.ColorMask) != currentColor)
+                            {
+                                // king ?
+                                if ((m_Pieces[to].AsPiece() & Piece.PieceMask) == Piece.King)
+                                {
+                                    // forced to capture the king
+                                    moves->Clear();
+                                    moves->Add(MoveUtils.ConstructQuietMove(sq, (byte)to) | Move.Capture, 0);
+                                    return 1;
+                                }
+                                
+                                moves->Add(MoveUtils.ConstructQuietMove(sq, (byte)to) | Move.Capture, MoveList.RookCapturePriority);
+                            }
+                            break;
+                        }
+                        to += direction;
+                    }
+                }
             }
             else if ((piece & Piece.PieceColorMask) == (Piece.Queen | currentColor))
             {
-                // queen
+                foreach (int direction in BoardUtils.QueenSlideDirections)
+                {
+                    int to = sq + direction;
+                    while (BoardUtils.IsSquareValid((byte)to))
+                    {
+                        // see if empty
+                        if ((m_Pieces[to].AsPiece() & Piece.PieceMask) == Piece.Empty)
+                        {
+                            moves->Add(MoveUtils.ConstructQuietMove(sq, (byte)to), MoveList.QueenMovePriority);
+                        }
+                        else
+                        {
+                            // see if capture
+                            if ((m_Pieces[to].AsPiece() & Piece.ColorMask) != currentColor)
+                            {
+                                // king ?
+                                if ((m_Pieces[to].AsPiece() & Piece.PieceMask) == Piece.King)
+                                {
+                                    // forced to capture the king
+                                    moves->Clear();
+                                    moves->Add(MoveUtils.ConstructQuietMove(sq, (byte)to) | Move.Capture, 0);
+                                    return 1;
+                                }
+                                
+                                moves->Add(MoveUtils.ConstructQuietMove(sq, (byte)to) | Move.Capture, MoveList.QueenCapturePriority);
+                            }
+                            break;
+                        }
+                        to += direction;
+                    }
+                }
             }
             else if ((piece & Piece.PieceColorMask) == (Piece.King | currentColor))
             {
