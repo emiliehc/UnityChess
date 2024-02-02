@@ -146,8 +146,6 @@ public unsafe class BoardTest
     public void MoveGenTest()
     {
         Board b = new Board(startingFen);
-        int numMoves = 256;
-        Move* moves = stackalloc Move[numMoves];
         MoveList moveList = new MoveList();
         int count = b.GenerateMoves(&moveList);
         Console.WriteLine(count);
@@ -156,6 +154,13 @@ public unsafe class BoardTest
         byte to = BoardUtils.SquareAlgebraicTo0X88("h3");
         int manhattanDistance = BoardUtils.GetManhattanDistance(from, to);
         Console.WriteLine(manhattanDistance);
+        
+        // iterate through the move list
+        for (int i = 0; i < count; i++)
+        {
+            Move move = moveList.Take();
+            Console.WriteLine(BoardUtils.GetMoveDescriptionWithBoard(b, move));
+        }
     }
     
     private const string castleOnlyFen = "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1";
@@ -167,5 +172,12 @@ public unsafe class BoardTest
         MoveList moveList = new MoveList();
         int count = b.GenerateMoves(&moveList);
         Console.WriteLine(count);
+        
+        // iterate through the move list
+        for (int i = 0; i < count; i++)
+        {
+            Move move = moveList.Take();
+            Console.WriteLine(BoardUtils.GetMoveDescriptionWithBoard(b, move));
+        }
     }
 }

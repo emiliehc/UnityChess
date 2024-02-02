@@ -254,6 +254,90 @@ public static class BoardUtils
     
     public const byte Square0X88FileMask = 0b_0000_0111;
     public const byte Square0X88RankMask = 0b_0111_0000;
+    
+    public static string GetMoveDescription(Move move)
+    {
+        MoveUtils.DeconstructMove(move, out byte from, out byte to);
+        string desc = $"{Square0X88ToAlgebraic(from)} -> {Square0X88ToAlgebraic(to)}";
+        // promotion ?
+        if ((move & Move.MoveTypeMask) >= Move.KnightPromotion)
+        {
+            desc += " promotion" + (move & Move.MoveTypeMask) switch
+            {
+                Move.KnightPromotion => " knight",
+                Move.BishopPromotion => " bishop",
+                Move.RookPromotion => " rook",
+                Move.QueenPromotion => " queen",
+                _ => ""
+            };
+        }
+        
+        // capture ?
+        if ((move & Move.MoveTypeMask) == Move.Capture)
+        {
+            desc += " capture";
+        }
+        
+        // en passant ?
+        if ((move & Move.MoveTypeMask) == Move.EnPassantCapture)
+        {
+            desc += " en passant";
+        }
+        
+        // castle ?
+        if ((move & Move.MoveTypeMask) == Move.CastleOO)
+        {
+            desc += " O-O";
+        }
+        else if ((move & Move.MoveTypeMask) == Move.CastleOOO)
+        {
+            desc += " O-O-O";
+        }
+        
+        return desc;
+    }
+
+    public static unsafe string GetMoveDescriptionWithBoard(in Board board, Move move)
+    {
+        MoveUtils.DeconstructMove(move, out byte from, out byte to);
+        string desc = $"{PieceUtils.PieceToChars[board.m_Pieces[from]]}@{Square0X88ToAlgebraic(from)} -> {PieceUtils.PieceToChars[board.m_Pieces[to]]}@{Square0X88ToAlgebraic(to)}";
+        // promotion ?
+        if ((move & Move.MoveTypeMask) >= Move.KnightPromotion)
+        {
+            desc += " promotion" + (move & Move.MoveTypeMask) switch
+            {
+                Move.KnightPromotion => " knight",
+                Move.BishopPromotion => " bishop",
+                Move.RookPromotion => " rook",
+                Move.QueenPromotion => " queen",
+                _ => ""
+            };
+        }
+        
+        // capture ?
+        if ((move & Move.MoveTypeMask) == Move.Capture)
+        {
+            desc += " capture";
+        }
+        
+        // en passant ?
+        if ((move & Move.MoveTypeMask) == Move.EnPassantCapture)
+        {
+            desc += " en passant";
+        }
+        
+        // castle ?
+        if ((move & Move.MoveTypeMask) == Move.CastleOO)
+        {
+            desc += " O-O";
+        }
+        else if ((move & Move.MoveTypeMask) == Move.CastleOOO)
+        {
+            desc += " O-O-O";
+        }
+        
+        return desc;
+    }
 }
 
 /// <summary>
@@ -345,17 +429,17 @@ public static class MoveUtils
 [StructLayout(LayoutKind.Auto)]
 public unsafe struct Board
 {
-    private fixed byte m_Pieces[128];
-    private SideToMove m_SideToMove;
-    private byte m_EnPassantTargetSquare;
+    public fixed byte m_Pieces[128];
+    public SideToMove m_SideToMove;
+    public byte m_EnPassantTargetSquare;
     
-    private ushort m_HalfMoveClock;
-    private ushort m_FullMoveNumber;
+    public ushort m_HalfMoveClock;
+    public ushort m_FullMoveNumber;
     
-    private bool m_WhiteCanCastleOO;
-    private bool m_WhiteCanCastleOOO;
-    private bool m_BlackCanCastleOO;
-    private bool m_BlackCanCastleOOO;
+    public bool m_WhiteCanCastleOO;
+    public bool m_WhiteCanCastleOOO;
+    public bool m_BlackCanCastleOO;
+    public bool m_BlackCanCastleOOO;
 
     public enum SideToMove : byte
     {
