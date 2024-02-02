@@ -1,19 +1,15 @@
 using System.Runtime.InteropServices;
 
 [StructLayout(LayoutKind.Sequential)]
-public unsafe ref struct Game
+public unsafe struct Game
 {
-    private fixed byte m_BoardBuffer[16384];
     private Board* m_Boards;
     private int m_BoardsCount;
     public const string StartingFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     
     public Game(string fen)
     {
-        fixed (byte* boardBuffer = m_BoardBuffer)
-        {
-            m_Boards = (Board*)boardBuffer;
-        }
+        m_Boards = (Board*)Marshal.AllocHGlobal(sizeof(Board) * 1024);
         m_BoardsCount = 0;
         Board initBoard = new Board(fen);
         PushBoard(&initBoard);

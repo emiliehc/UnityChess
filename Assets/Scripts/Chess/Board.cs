@@ -442,7 +442,7 @@ public static class MoveUtils
 }
 
 [StructLayout(LayoutKind.Sequential)]
-public unsafe ref struct Board
+public unsafe struct Board
 {
     public fixed byte m_Pieces[128];
     public SideToMove m_SideToMove;

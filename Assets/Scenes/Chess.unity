@@ -5582,6 +5582,18 @@ MonoBehaviour:
   F8: {fileID: 1056181208}
   G8: {fileID: 1661908251}
   H8: {fileID: 1816460267}
+  WhitePawnPrefab: {fileID: 6858609679454692904, guid: e5d6adb6ff04a46c6b7c99b520da0831, type: 3}
+  WhiteKnightPrefab: {fileID: 4312173031165355888, guid: cc1ca4c89ad1f4790b37e979bc90ad70, type: 3}
+  WhiteBishopPrefab: {fileID: 4646088882560096550, guid: 58abbeacab9ee4f31994360d17c5ef36, type: 3}
+  WhiteRookPrefab: {fileID: 5829751169874928756, guid: e2c6ede0ec4ee49e3a762c94d0083cbf, type: 3}
+  WhiteQueenPrefab: {fileID: 5272140690675152407, guid: 44d5850251b2b4f44a17f9dac0bc2877, type: 3}
+  WhiteKingPrefab: {fileID: 1952402006840668265, guid: 66342c5f661574fb6965923b591db020, type: 3}
+  BlackPawnPrefab: {fileID: 9092291340259382653, guid: ab38e1d0132a04fb9a012fa357810276, type: 3}
+  BlackKnightPrefab: {fileID: 7231223769241266147, guid: 0e1078e0b35f84c13a630b7e68a3f406, type: 3}
+  BlackBishopPrefab: {fileID: 5235014698155005483, guid: 629d464c29354421498663d49914dedb, type: 3}
+  BlackRookPrefab: {fileID: 6551359529225775451, guid: 272ba6d5025e348aabf975ce598049a5, type: 3}
+  BlackQueenPrefab: {fileID: 3717237483541714794, guid: ad786ffdfee704d4cbc6d7dadebbb243, type: 3}
+  BlackKingPrefab: {fileID: 592097959874355673, guid: ebd570d4ed7bb4dd29c8341541d64367, type: 3}
 --- !u!1 &1821282204
 GameObject:
   m_ObjectHideFlags: 0
