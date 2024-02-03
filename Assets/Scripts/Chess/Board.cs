@@ -445,6 +445,8 @@ public static class MoveUtils
 public unsafe struct Board
 {
     public fixed byte m_Pieces[128];
+    public Bitboard m_SquaresAttackedByWhite;
+    public Bitboard m_SquaresAttackedByBlack;
     public SideToMove m_SideToMove;
     public byte m_EnPassantTargetSquare;
     
@@ -520,6 +522,11 @@ public unsafe struct Board
         
         m_HalfMoveClock = ushort.Parse(parts[4]);
         m_FullMoveNumber = ushort.Parse(parts[5]);
+        
+        m_SquaresAttackedByWhite = Bitboard.Empty;
+        m_SquaresAttackedByBlack = Bitboard.Empty;
+        
+        GenerateAttackMapForSide(m_SideToMove == SideToMove.White ? SideToMove.Black : SideToMove.White);
     }
 
     public Move GenerateSinglePawnPush(byte from, byte to)
@@ -603,27 +610,31 @@ public unsafe struct Board
                         continue;
                     }
                     
-                    if (BoardUtils.IsSquareValid(to) && (m_Pieces[to].AsPiece() & Piece.ColorMask) != currentColor && (m_Pieces[to].AsPiece() & Piece.PieceMask) != Piece.Empty)
+                    if (BoardUtils.IsSquareValid(to))
                     {
-                        // king
-                        if ((m_Pieces[to].AsPiece() & Piece.PieceMask) == Piece.King)
+                        if ((m_Pieces[to].AsPiece() & Piece.ColorMask) != currentColor &&
+                            (m_Pieces[to].AsPiece() & Piece.PieceMask) != Piece.Empty)
                         {
-                            // forced to capture the king
-                            moves->Clear();
-                            moves->Add(MoveUtils.ConstructQuietMove(sq, to) | Move.Capture, 0);
-                            return 1;
-                        }
+                            // king
+                            if ((m_Pieces[to].AsPiece() & Piece.PieceMask) == Piece.King)
+                            {
+                                // forced to capture the king
+                                moves->Clear();
+                                moves->Add(MoveUtils.ConstructQuietMove(sq, to) | Move.Capture, 0);
+                                return 1;
+                            }
                         
-                        if (BoardUtils.GetRank(to) == pawnPromotionRank)
-                        {
-                            moves->Add(MoveUtils.ConstructQuietMove(sq, to) | Move.QueenPromotionCapture, MoveList.CapturePromotionPriority);
-                            moves->Add(MoveUtils.ConstructQuietMove(sq, to) | Move.RookPromotionCapture, MoveList.CapturePromotionPriority);
-                            moves->Add(MoveUtils.ConstructQuietMove(sq, to) | Move.BishopPromotionCapture, MoveList.CapturePromotionPriority);
-                            moves->Add(MoveUtils.ConstructQuietMove(sq, to) | Move.KnightPromotionCapture, MoveList.CapturePromotionPriority);
-                        }
-                        else
-                        {
-                            moves->Add(MoveUtils.ConstructQuietMove(sq, to) | Move.Capture, MoveList.PawnCapturePriority);
+                            if (BoardUtils.GetRank(to) == pawnPromotionRank)
+                            {
+                                moves->Add(MoveUtils.ConstructQuietMove(sq, to) | Move.QueenPromotionCapture, MoveList.CapturePromotionPriority);
+                                moves->Add(MoveUtils.ConstructQuietMove(sq, to) | Move.RookPromotionCapture, MoveList.CapturePromotionPriority);
+                                moves->Add(MoveUtils.ConstructQuietMove(sq, to) | Move.BishopPromotionCapture, MoveList.CapturePromotionPriority);
+                                moves->Add(MoveUtils.ConstructQuietMove(sq, to) | Move.KnightPromotionCapture, MoveList.CapturePromotionPriority);
+                            }
+                            else
+                            {
+                                moves->Add(MoveUtils.ConstructQuietMove(sq, to) | Move.Capture, MoveList.PawnCapturePriority);
+                            }
                         }
                     }
                 }
@@ -756,6 +767,100 @@ public unsafe struct Board
         }
         
         return moves->Count;
+    }
+
+    public void GenerateAttackMapForSide(SideToMove side)
+    {
+        Piece currentColor = side == SideToMove.White ? Piece.White : Piece.Black;
+        int pawnPushDirection = side == SideToMove.White ? BoardUtils.DirectionN : BoardUtils.DirectionS;
+        byte pawnStartRank = side == SideToMove.White ? BoardUtils.Rank2 : BoardUtils.Rank7;
+        byte pawnPromotionRank = side == SideToMove.White ? BoardUtils.Rank8 : BoardUtils.Rank1;
+        int[] pawnAttackMoves = side == SideToMove.White ? BoardUtils.WhitePawnAttackMoves : BoardUtils.BlackPawnAttackMoves;
+        byte enPassantRank = side == SideToMove.White ? BoardUtils.Rank5 : BoardUtils.Rank4;
+        bool canCastleOO = side == SideToMove.White ? m_WhiteCanCastleOO : m_BlackCanCastleOO;
+        bool canCastleOOO = side == SideToMove.White ? m_WhiteCanCastleOOO : m_BlackCanCastleOOO;
+        Bitboard squaresAttackedBySide = Bitboard.Empty;
+        
+        // for current side to move
+        // for each square
+        for (byte sq = 0; sq < 128; sq++)
+        {
+            if (sq % 16 >= 8)
+            {
+                sq += 7;
+                continue;
+            }
+            
+            Piece piece = m_Pieces[sq].AsPiece();
+            if (piece == Piece.Empty || (piece & Piece.ColorMask) != currentColor)
+            {
+                continue;
+            }
+            
+            // pawn
+            if ((piece & Piece.PieceColorMask) == (Piece.Pawn | currentColor))
+            {
+                // pawn captures, unless a step away from the pawn promotion rank, then promotion capture
+                foreach (int pawnAttackMove in pawnAttackMoves)
+                {
+                    byte to = (byte)(sq + pawnAttackMove);
+                    if (BoardUtils.IsSquareValid(to))
+                    {
+                        BitboardUtils.SetBitTrue(&squaresAttackedBySide, to);
+                    }
+                }
+            }
+            else if ((piece & Piece.PieceColorMask) == (Piece.Knight | currentColor))
+            {
+                foreach (int knightMove in BoardUtils.KnightMoves)
+                {
+                    byte to = (byte)(sq + knightMove);
+                    if (!BoardUtils.IsSquareValid(to)) continue;
+                    BitboardUtils.SetBitTrue(&squaresAttackedBySide, to);
+                }
+            }
+            else if ((piece & Piece.PieceColorMask) == (Piece.Bishop | currentColor) || (piece & Piece.PieceColorMask) == (Piece.Queen | currentColor) || (piece & Piece.PieceColorMask) == (Piece.Rook | currentColor))
+            {
+                Piece pieceCode = piece & Piece.PieceMask;
+                
+                int[] slidingDirections = BoardUtils.SlidingPieceDirections[(int)pieceCode];
+                
+                foreach (int direction in slidingDirections)
+                {
+                    int to = sq + direction;
+                    while (BoardUtils.IsSquareValid((byte)to))
+                    {
+                        BitboardUtils.SetBitTrue(&squaresAttackedBySide, (byte)to);
+                        // see if empty
+                        if ((m_Pieces[to].AsPiece() & Piece.PieceMask) != Piece.Empty)
+                        {
+                            break;
+                        }
+                        to += direction;
+                    }
+                }
+            }
+            else if ((piece & Piece.PieceColorMask) == (Piece.King | currentColor))
+            {
+                // king
+                // movements
+                foreach (int dir in BoardUtils.KingMoves)
+                {
+                    byte to = (byte)(sq + dir);
+                    if (!BoardUtils.IsSquareValid(to)) continue;
+                    BitboardUtils.SetBitTrue(&squaresAttackedBySide, to);
+                }
+            }
+        }
+        
+        if (side == SideToMove.White)
+        {
+            m_SquaresAttackedByWhite = squaresAttackedBySide;
+        }
+        else
+        {
+            m_SquaresAttackedByBlack = squaresAttackedBySide;
+        }
     }
     
     public void MakeMove(Move move)
@@ -973,6 +1078,8 @@ public unsafe struct Board
         {
             m_HalfMoveClock++;
         }
+        
+        GenerateAttackMapForSide(m_SideToMove);
         
         // flip side to move
         m_SideToMove = m_SideToMove == SideToMove.White ? SideToMove.Black : SideToMove.White;

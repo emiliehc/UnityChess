@@ -200,8 +200,23 @@ public unsafe class GameController : MonoBehaviour
                     m_MoveMap[(from, to)] = new List<Move> {move};
                 }
             }
+            
+            // set colors of attack map of opponent
+            for (byte i = 0; i < 128; i++)
+            {
+                if (!BoardUtils.IsSquareValid(i)) continue;
+                
+                Bitboard attackMap = board->m_SideToMove == Board.SideToMove.White ? board->m_SquaresAttackedByBlack : board->m_SquaresAttackedByWhite;
+                if (attackMap.GetBit(i))
+                {
+                    GameObject squareObject = m_Squares[i];
+                    if (squareObject)
+                    {
+                        squareObject.GetComponent<SpriteRenderer>().color *= new Color(1.5f, 1.0f, 1.0f, 1.0f);
+                    }
+                }
+            }
         }
-        
         
         
         // input
