@@ -878,6 +878,82 @@ public unsafe struct Board
                 break;
         }
         
+        // if king move
+        if ((m_Pieces[to].AsPiece() & Piece.PieceMask) == Piece.King)
+        {
+            if (m_SideToMove == SideToMove.White)
+            {
+                m_WhiteCanCastleOO = false;
+                m_WhiteCanCastleOOO = false;
+            }
+            else
+            {
+                m_BlackCanCastleOO = false;
+                m_BlackCanCastleOOO = false;
+            }
+        }
+        
+        // if caslting rights already lost, no need to check
+        if (m_WhiteCanCastleOO || m_WhiteCanCastleOOO || m_BlackCanCastleOO || m_BlackCanCastleOOO)
+        {
+            // if rook move (si une tour bouge de sa case de départ)
+            if ((m_Pieces[to].AsPiece() & Piece.PieceMask) == Piece.Rook)
+            {
+                if (m_SideToMove == SideToMove.White)
+                {
+                    if (from == BoardUtils.GetSquare(BoardUtils.FileA, BoardUtils.Rank1))
+                    {
+                        m_WhiteCanCastleOOO = false;
+                    }
+                    else if (from == BoardUtils.GetSquare(BoardUtils.FileH, BoardUtils.Rank1))
+                    {
+                        m_WhiteCanCastleOO = false;
+                    }
+                }
+                else
+                {
+                    if (from == BoardUtils.GetSquare(BoardUtils.FileA, BoardUtils.Rank8))
+                    {
+                        m_BlackCanCastleOOO = false;
+                    }
+                    else if (from == BoardUtils.GetSquare(BoardUtils.FileH, BoardUtils.Rank8))
+                    {
+                        m_BlackCanCastleOO = false;
+                    }
+                }
+            }
+        
+            if ((move & Move.Capture) != 0)
+            {
+                if (m_SideToMove == SideToMove.White)
+                {
+                    if (to == BoardUtils.GetSquare(BoardUtils.FileA, BoardUtils.Rank8))
+                    {
+                        m_BlackCanCastleOOO = false;
+                    }
+                    else if (to == BoardUtils.GetSquare(BoardUtils.FileH, BoardUtils.Rank8))
+                    {
+                        m_BlackCanCastleOO = false;
+                    }
+                }
+                else
+                {
+                    if (to == BoardUtils.GetSquare(BoardUtils.FileA, BoardUtils.Rank1))
+                    {
+                        m_WhiteCanCastleOOO = false;
+                    }
+                    else if (to == BoardUtils.GetSquare(BoardUtils.FileH, BoardUtils.Rank1))
+                    {
+                        m_WhiteCanCastleOO = false;
+                    }
+                }
+            }
+        }
+
+
+        
+        
+        
         if (moveType != Move.DoublePawnPush)
         {
             m_EnPassantTargetSquare = BoardUtils.InvalidSquare;

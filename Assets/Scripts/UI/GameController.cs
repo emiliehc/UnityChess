@@ -155,7 +155,7 @@ public unsafe class GameController : MonoBehaviour
     private Piece m_DraggingPieceAbstract;
 
     private Move[] m_Moves = null;
-    private Dictionary<(byte, byte), Move> m_MoveMap = new Dictionary<(byte, byte), Move>();
+    private Dictionary<(byte, byte), List<Move>> m_MoveMap = new Dictionary<(byte, byte), List<Move>>();
 
     private void ResetColors()
     {
@@ -191,7 +191,14 @@ public unsafe class GameController : MonoBehaviour
                 byte from, to;
                 MoveUtils.DeconstructMove(move, out from, out to);
                 Piece piece = (Piece)board->m_Pieces[from];
-                m_MoveMap[(from, to)] = move;
+                if (m_MoveMap.ContainsKey((from, to)))
+                {
+                    m_MoveMap[(from, to)].Add(move);
+                }
+                else
+                {
+                    m_MoveMap[(from, to)] = new List<Move> {move};
+                }
             }
         }
         
@@ -287,16 +294,35 @@ public unsafe class GameController : MonoBehaviour
                     if (legalSquares.Contains(to))
                     {
                         // find the move in the move list
-                        Move move = m_MoveMap[
-                            (Get0X88SquareFromMousePos(m_DraggingPiece.transform.parent.position), to)];
-                        s_Game.MakeMove(move);
-                        // reset
-                        m_Dragging = false;
-                        m_MoveMap.Clear();
-                        m_Moves = null;
+                        List<Move> moves = m_MoveMap[(Get0X88SquareFromMousePos(m_DraggingPiece.transform.parent.position), to)];
+                        if (moves.Count == 1)
+                        {
+                            Move move = moves[0];
+                            s_Game.MakeMove(move);
+                            // reset
+                            m_Dragging = false;
+                            m_MoveMap.Clear();
+                            m_Moves = null;
 
-                        RenderBoard();
-                        ResetColors();
+                            RenderBoard();
+                            ResetColors();
+                        }
+                        else
+                        {
+                            // promotion
+                            // TODO
+                            // for now, autopromote to queen
+                            Move move = moves.FirstOrDefault(m => (m & Move.MoveTypeMask) == Move.QueenPromotionCapture || (m & Move.MoveTypeMask) == Move.QueenPromotion);
+                            s_Game.MakeMove(move);
+                            
+                            // reset
+                            m_Dragging = false;
+                            m_MoveMap.Clear();
+                            m_Moves = null;
+
+                            RenderBoard();
+                            ResetColors();
+                        }
                     }
                 }
             }
