@@ -215,6 +215,33 @@ public unsafe class GameController : MonoBehaviour
                         squareObject.GetComponent<SpriteRenderer>().color *= new Color(1.5f, 1.0f, 1.0f, 1.0f);
                     }
                 }
+
+                if (board->InCheck)
+                {
+                    // is it king ?
+                    if (board->m_SideToMove == Board.SideToMove.White)
+                    {
+                        if (board->m_Pieces[i] == (byte)PieceUtils.WhiteKing)
+                        {
+                            GameObject squareObject = m_Squares[i];
+                            if (squareObject)
+                            {
+                                squareObject.GetComponent<SpriteRenderer>().color *= new Color(1.0f, 0, 0, 1);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (board->m_Pieces[i] == (byte)PieceUtils.BlackKing)
+                        {
+                            GameObject squareObject = m_Squares[i];
+                            if (squareObject)
+                            {
+                                squareObject.GetComponent<SpriteRenderer>().color *= new Color(1, 0, 0, 1);
+                            }
+                        }
+                    }
+                }
             }
         }
         

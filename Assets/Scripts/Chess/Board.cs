@@ -526,6 +526,9 @@ public unsafe struct Board
         m_SquaresAttackedByWhite = Bitboard.Empty;
         m_SquaresAttackedByBlack = Bitboard.Empty;
         
+        m_BlackKingInCheck = false;
+        m_WhiteKingInCheck = false;
+        
         GenerateAttackMapForSide(m_SideToMove == SideToMove.White ? SideToMove.Black : SideToMove.White);
     }
 
@@ -769,6 +772,11 @@ public unsafe struct Board
         return moves->Count;
     }
 
+    private bool m_WhiteKingInCheck;
+    private bool m_BlackKingInCheck;
+
+    public bool InCheck => m_WhiteKingInCheck || m_BlackKingInCheck;
+
     public void GenerateAttackMapForSide(SideToMove side)
     {
         Piece currentColor = side == SideToMove.White ? Piece.White : Piece.Black;
@@ -780,6 +788,9 @@ public unsafe struct Board
         bool canCastleOO = side == SideToMove.White ? m_WhiteCanCastleOO : m_BlackCanCastleOO;
         bool canCastleOOO = side == SideToMove.White ? m_WhiteCanCastleOOO : m_BlackCanCastleOOO;
         Bitboard squaresAttackedBySide = Bitboard.Empty;
+        Piece enemyKing = side == SideToMove.White ? PieceUtils.BlackKing : PieceUtils.WhiteKing;
+        
+        bool oppositeKingInCheck = false;
         
         // for current side to move
         // for each square
@@ -807,6 +818,12 @@ public unsafe struct Board
                     if (BoardUtils.IsSquareValid(to))
                     {
                         BitboardUtils.SetBitTrue(&squaresAttackedBySide, to);
+                        
+                        // is it king
+                        if (m_Pieces[to].AsPiece() == enemyKing)
+                        {
+                            oppositeKingInCheck = true;
+                        }
                     }
                 }
             }
@@ -817,6 +834,11 @@ public unsafe struct Board
                     byte to = (byte)(sq + knightMove);
                     if (!BoardUtils.IsSquareValid(to)) continue;
                     BitboardUtils.SetBitTrue(&squaresAttackedBySide, to);
+                    // is it king
+                    if (m_Pieces[to].AsPiece() == enemyKing)
+                    {
+                        oppositeKingInCheck = true;
+                    }
                 }
             }
             else if ((piece & Piece.PieceColorMask) == (Piece.Bishop | currentColor) || (piece & Piece.PieceColorMask) == (Piece.Queen | currentColor) || (piece & Piece.PieceColorMask) == (Piece.Rook | currentColor))
@@ -831,7 +853,11 @@ public unsafe struct Board
                     while (BoardUtils.IsSquareValid((byte)to))
                     {
                         BitboardUtils.SetBitTrue(&squaresAttackedBySide, (byte)to);
-                        // see if empty
+                        // is it king
+                        if (m_Pieces[to].AsPiece() == enemyKing)
+                        {
+                            oppositeKingInCheck = true;
+                        }
                         if ((m_Pieces[to].AsPiece() & Piece.PieceMask) != Piece.Empty)
                         {
                             break;
@@ -849,17 +875,27 @@ public unsafe struct Board
                     byte to = (byte)(sq + dir);
                     if (!BoardUtils.IsSquareValid(to)) continue;
                     BitboardUtils.SetBitTrue(&squaresAttackedBySide, to);
+                    // is it king
+                    if (m_Pieces[to].AsPiece() == enemyKing)
+                    {
+                        oppositeKingInCheck = true;
+                    }
                 }
             }
         }
         
+        m_BlackKingInCheck = false;
+        m_WhiteKingInCheck = false;
+        
         if (side == SideToMove.White)
         {
             m_SquaresAttackedByWhite = squaresAttackedBySide;
+            m_BlackKingInCheck = oppositeKingInCheck;
         }
         else
         {
             m_SquaresAttackedByBlack = squaresAttackedBySide;
+            m_WhiteKingInCheck = oppositeKingInCheck;
         }
     }
     
