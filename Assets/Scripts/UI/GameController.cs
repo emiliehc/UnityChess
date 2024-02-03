@@ -207,9 +207,13 @@ public unsafe class GameController : MonoBehaviour
                             GameObject pieceObj = squareObj.transform.GetChild(0).gameObject;
                             if (pieceObj)
                             {
-                                m_DraggingPiece = pieceObj;
-                                m_Dragging = true;
-                                m_DraggingPieceAbstract = (Piece)board->m_Pieces[square];
+                                // does this piece even have legal moves ?
+                                if (m_PieceToLegalSquares.ContainsKey((Piece)board->m_Pieces[square]))
+                                {
+                                    m_DraggingPiece = pieceObj;
+                                    m_Dragging = true;
+                                    m_DraggingPieceAbstract = (Piece)board->m_Pieces[square];
+                                }
                             }
                         }
                     }
