@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
@@ -154,8 +155,21 @@ public unsafe class GameController : MonoBehaviour
     private Piece m_DraggingPieceAbstract;
 
     private Move[] m_Moves = null;
-    private Dictionary<Piece, HashSet<byte>> m_PieceToLegalSquares = new Dictionary<Piece, HashSet<byte>>();
     private Dictionary<(byte, byte), Move> m_MoveMap = new Dictionary<(byte, byte), Move>();
+
+    private void ResetColors()
+    {
+        // reset colours
+        for (byte i = 0; i < 128; i++)
+        {
+            if (!BoardUtils.IsSquareValid(i)) continue;
+            GameObject squareObject = m_Squares[i];
+            if (squareObject)
+            {
+                squareObject.GetComponent<SpriteRenderer>().color = (i % 2 == 0) ^ (i / 16 % 2 == 0) ? m_LightColor : m_DarkColor;
+            }
+        }
+    }
     
     private void Update()
     {
@@ -177,25 +191,11 @@ public unsafe class GameController : MonoBehaviour
                 byte from, to;
                 MoveUtils.DeconstructMove(move, out from, out to);
                 Piece piece = (Piece)board->m_Pieces[from];
-                if (!m_PieceToLegalSquares.ContainsKey(piece))
-                {
-                    m_PieceToLegalSquares[piece] = new HashSet<byte>();
-                }
-                m_PieceToLegalSquares[piece].Add(to);
                 m_MoveMap[(from, to)] = move;
             }
         }
         
-        // reset colours
-        for (byte i = 0; i < 128; i++)
-        {
-            if (!BoardUtils.IsSquareValid(i)) continue;
-            GameObject squareObject = m_Squares[i];
-            if (squareObject)
-            {
-                squareObject.GetComponent<SpriteRenderer>().color = (i % 2 == 0) ^ (i / 16 % 2 == 0) ? m_LightColor : m_DarkColor;
-            }
-        }
+        
         
         // input
         Vector2 mousePos = m_Camera.ScreenToWorldPoint(Input.mousePosition);
@@ -221,11 +221,38 @@ public unsafe class GameController : MonoBehaviour
                             if (pieceObj)
                             {
                                 // does this piece even have legal moves ?
-                                if (m_PieceToLegalSquares.ContainsKey((Piece)board->m_Pieces[square]))
+                                // get coordinates
+                                bool hasLegalMoves = false;
+                                foreach ((byte from, byte to) in m_MoveMap.Keys)
+                                {
+                                    if (from == square)
+                                    {
+                                        hasLegalMoves = true;
+                                        break;
+                                    }
+                                }
+                                
+                                if (hasLegalMoves)
                                 {
                                     m_DraggingPiece = pieceObj;
-                                    m_Dragging = true;
                                     m_DraggingPieceAbstract = (Piece)board->m_Pieces[square];
+                                    m_Dragging = true;
+                                    
+                                    // highlight legal squares
+                                    List<byte> legalSquares = new List<byte>();
+                                    
+                                    foreach ((byte from, byte to) in m_MoveMap.Keys)
+                                    {
+                                        if (from == square)
+                                        {
+                                            legalSquares.Add(to);
+                                        }
+                                    }
+                                    
+                                    foreach (GameObject legalSquareObj in legalSquares.Select(legalSquare => m_Squares[legalSquare]).Where(legalSquareObj => legalSquareObj))
+                                    {
+                                        legalSquareObj.GetComponent<SpriteRenderer>().color *= new Color(1.0f, 1.2f, 1.0f, 1.0f);
+                                    }
                                 }
                             }
                         }
@@ -240,25 +267,37 @@ public unsafe class GameController : MonoBehaviour
         
         if (m_Dragging)
         {
-            m_DraggingPiece.transform.position = mousePos;
+            m_DraggingPiece.transform.position = new Vector3(mousePos.x, mousePos.y, -10.0f);
             if (Input.GetMouseButtonUp(0))
             {
                 // drop piece
                 // query for legal squares
-                HashSet<byte> legalSquares = m_PieceToLegalSquares[m_DraggingPieceAbstract];
-                byte to = Get0X88SquareFromMousePos(mousePos);
-                if (legalSquares.Contains(to))
+                List<byte> legalSquares = new List<byte>();
                 {
-                    // find the move in the move list
-                    Move move = m_MoveMap[(Get0X88SquareFromMousePos(m_DraggingPiece.transform.parent.position), to)];
-                    s_Game.MakeMove(move);
-                    // reset
-                    m_Dragging = false;
-                    m_PieceToLegalSquares.Clear();
-                    m_MoveMap.Clear();
-                    m_Moves = null;
-                    
-                    RenderBoard();
+                    foreach ((byte from, byte to) in m_MoveMap.Keys)
+                    {
+                        if (from == Get0X88SquareFromMousePos(m_DraggingPiece.transform.parent.position))
+                        {
+                            legalSquares.Add(to);
+                        }
+                    }
+                }
+                {
+                    byte to = Get0X88SquareFromMousePos(mousePos);
+                    if (legalSquares.Contains(to))
+                    {
+                        // find the move in the move list
+                        Move move = m_MoveMap[
+                            (Get0X88SquareFromMousePos(m_DraggingPiece.transform.parent.position), to)];
+                        s_Game.MakeMove(move);
+                        // reset
+                        m_Dragging = false;
+                        m_MoveMap.Clear();
+                        m_Moves = null;
+
+                        RenderBoard();
+                        ResetColors();
+                    }
                 }
             }
         }
