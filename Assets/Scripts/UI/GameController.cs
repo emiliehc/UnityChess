@@ -19,9 +19,13 @@ public unsafe class GameController : MonoBehaviour
     public GameObject WhitePawnPrefab, WhiteKnightPrefab, WhiteBishopPrefab, WhiteRookPrefab, WhiteQueenPrefab, WhiteKingPrefab;
     public GameObject BlackPawnPrefab, BlackKnightPrefab, BlackBishopPrefab, BlackRookPrefab, BlackQueenPrefab, BlackKingPrefab;
     public GameObject[] m_PiecePrefabs = new GameObject[16];
+    private Camera m_Camera;
+    private Color m_DarkColor;
+    private Color m_LightColor;
     
     private void Awake()
     {
+        m_Camera = Camera.main;
         // GC pin
         GC.KeepAlive(s_Game);
         GCHandle.Alloc(s_Game, GCHandleType.Pinned);
@@ -108,6 +112,9 @@ public unsafe class GameController : MonoBehaviour
         m_PiecePrefabs[(int)PieceUtils.BlackRook] = BlackRookPrefab;
         m_PiecePrefabs[(int)PieceUtils.BlackQueen] = BlackQueenPrefab;
         m_PiecePrefabs[(int)PieceUtils.BlackKing] = BlackKingPrefab;
+
+        m_DarkColor = A1.GetComponent<SpriteRenderer>().color;
+        m_LightColor = A2.GetComponent<SpriteRenderer>().color;
     }
 
     private void Start()
@@ -119,13 +126,115 @@ public unsafe class GameController : MonoBehaviour
             if (!BoardUtils.IsSquareValid(i)) continue;
             GameObject square = m_Squares[i];
             if ((((Piece)board->m_Pieces[i]) & Piece.PieceColorMask) == Piece.Empty) continue;
-            GameObject piece = Instantiate(m_PiecePrefabs[(int)((Piece)board->m_Pieces[i] & Piece.PieceColorMask)]);
+            GameObject piece = Instantiate(m_PiecePrefabs[(int)((Piece)board->m_Pieces[i] & Piece.PieceColorMask)], square.transform, false);
             piece.transform.position = square.transform.position - new Vector3(0, 0, 2.0f);
         }
     }
+    
+    private static byte Get0X88SquareFromMousePos(Vector2 mousePos)
+    {
+        byte file = (byte)((mousePos.x + 4f));
+        byte rank = (byte)((mousePos.y + 4f));
+        return (byte)(rank * 16 + file);
+    }
+    
+    private bool m_Dragging = false;
+    private GameObject m_DraggingPiece;
+    private Piece m_DraggingPieceAbstract;
 
+    private Move[] m_Moves = null;
+    private Dictionary<Piece, HashSet<byte>> m_PieceToLegalSquares = new Dictionary<Piece, HashSet<byte>>();
+    
     private void Update()
     {
         Board* board = s_Game.currentBoard;
+        
+        if (m_Moves == null)
+        {
+            MoveList list;
+            int count = board->GenerateMoves(&list);
+            m_Moves = new Move[count];
+            for (int i = 0; i < count; i++)
+            {
+                m_Moves[i] = list.Take();
+            }
+            
+            // set up piece to legal squares
+            foreach (Move move in m_Moves)
+            {
+                byte from, to;
+                MoveUtils.DeconstructMove(move, out from, out to);
+                Piece piece = (Piece)board->m_Pieces[from];
+                if (!m_PieceToLegalSquares.ContainsKey(piece))
+                {
+                    m_PieceToLegalSquares[piece] = new HashSet<byte>();
+                }
+                m_PieceToLegalSquares[piece].Add(to);
+            }
+        }
+        
+        // reset colours
+        for (byte i = 0; i < 128; i++)
+        {
+            if (!BoardUtils.IsSquareValid(i)) continue;
+            GameObject squareObject = m_Squares[i];
+            if (squareObject)
+            {
+                squareObject.GetComponent<SpriteRenderer>().color = (i % 2 == 0) ^ (i / 16 % 2 == 0) ? m_LightColor : m_DarkColor;
+            }
+        }
+        
+        // input
+        Vector2 mousePos = m_Camera.ScreenToWorldPoint(Input.mousePosition);
+        // inside the bounds of the board ?
+        Rect boardBounds = new Rect(-4, -4, 8, 8);
+        if (boardBounds.Contains(mousePos))
+        {
+            // get square
+            byte square = Get0X88SquareFromMousePos(mousePos);
+            // color the square
+            try
+            {
+                GameObject squareObj = m_Squares[square];
+                if (squareObj)
+                {
+                    // allow for dragging
+                    if (Input.GetMouseButtonDown(0))
+                    {
+                        // move piece
+                        if (((Piece)board->m_Pieces[square]) != Piece.Empty)
+                        {
+                            GameObject pieceObj = squareObj.transform.GetChild(0).gameObject;
+                            if (pieceObj)
+                            {
+                                m_DraggingPiece = pieceObj;
+                                m_Dragging = true;
+                                m_DraggingPieceAbstract = (Piece)board->m_Pieces[square];
+                            }
+                        }
+                    }
+                }
+            }
+            catch (IndexOutOfRangeException)
+            {
+                // ignore
+            }
+        }
+        
+        if (m_Dragging)
+        {
+            m_DraggingPiece.transform.position = mousePos;
+            if (Input.GetMouseButtonUp(0))
+            {
+                // drop piece
+                // query for legal squares
+                HashSet<byte> legalSquares = m_PieceToLegalSquares[m_DraggingPieceAbstract];
+                byte to = Get0X88SquareFromMousePos(mousePos);
+                if (legalSquares.Contains(to))
+                {
+                    
+                }
+            }
+        }
     }
 }
