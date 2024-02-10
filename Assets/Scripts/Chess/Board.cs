@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 [Flags]
@@ -209,26 +210,31 @@ public static class BoardUtils
     private static readonly string[] Ranks = new string[] { "1", "2", "3", "4", "5", "6", "7", "8" };
     public const byte InvalidSquare = 0xff;
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string Square0X88ToAlgebraic(byte square)
     {
         return $"{Files[GetFile(square)]}{Ranks[GetRank(square)]}";
     }
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte SquareAlgebraicTo0X88(string square)
     {
         return GetSquare((byte)(square[0] - 'a'), (byte)(square[1] - '1'));
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte GetFile(byte square)
     {
         return (byte)(square & 7);
     }
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte GetRank(byte square)
     {
         return (byte)(square >> 4);
     }
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte GetSquare(byte file, byte rank)
     {
         unchecked
@@ -237,6 +243,7 @@ public static class BoardUtils
         }
     }
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsSquareValid(byte square)
     {
         unchecked
@@ -245,6 +252,7 @@ public static class BoardUtils
         }
     }
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int Get8X8Square(byte square)
     {
         unchecked
@@ -253,6 +261,7 @@ public static class BoardUtils
         }
     }
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte Get0X88Square(int square)
     {
         unchecked
@@ -269,16 +278,19 @@ public static class BoardUtils
         }
     }
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetManhattanDistance(byte a, byte b)
     {
         return Math.Abs(GetFile(a) - GetFile(b)) + Math.Abs(GetRank(a) - GetRank(b));
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte AsByte(this Piece piece)
     {
         return (byte)piece;
     }
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Piece AsPiece(this byte piece)
     {
         return (Piece)piece;
@@ -439,6 +451,7 @@ public static class MoveUtils
         return (move & Move.MoveTypeMask) == Move.EnPassantCapture;
     }
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Move ConstructQuietMove(byte from, byte to)
     {
         unchecked
@@ -447,6 +460,7 @@ public static class MoveUtils
         }
     }
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void DeconstructMove(Move move, out byte from, out byte to)
     {
         unchecked
@@ -555,7 +569,8 @@ public unsafe ref struct Board
         m_BlackKingInCheck = false;
         m_WhiteKingInCheck = false;
         
-        GenerateAttackMapForSide(m_SideToMove == SideToMove.White ? SideToMove.Black : SideToMove.White);
+        GenerateAttackMapForSide(SideToMove.White);
+        GenerateAttackMapForSide(SideToMove.Black);
     }
 
     public Move GenerateSinglePawnPush(byte from, byte to)

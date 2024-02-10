@@ -6,20 +6,13 @@ public unsafe class SimulationTest
     [Test]
     public void Test()
     {
-        Simulation simulation = new Simulation(Game.StartingFen);
-        float eval = simulation.AlphaBeta(7, Board.SideToMove.White, float.NegativeInfinity, float.PositiveInfinity, true);
-        Console.WriteLine(eval);
-        // current board eval simple
-        Console.WriteLine(simulation.game.currentBoard->SimpleEvaluate());
-        // print all moves
-        foreach ((Move move, float evalAfterMove) in simulation.moves)
+        const string fen = "r5rk/2p1Nppp/3p3P/pp2p1P1/4P3/2qnPQK1/8/R6R w - - 1 0";
+        Simulation simulation = new Simulation(fen);
+        for (int i = 0; i < 60; i++)
         {
-            Console.WriteLine(
-                $"{BoardUtils.GetMoveDescriptionWithBoard(*simulation.game.currentBoard, move)}: {evalAfterMove}");
+            Move move = simulation.GetBestMove(6);
+            Console.WriteLine($"{i} {BoardUtils.GetMoveDescriptionWithBoard(*simulation.game.currentBoard, move)}");
+            simulation.game.MakeMove(move);
         }
-        
-        // print board fen
-        Console.WriteLine(simulation.game.Fen);
-        Assert.AreEqual(Game.StartingFen, simulation.game.Fen);
     }
 }

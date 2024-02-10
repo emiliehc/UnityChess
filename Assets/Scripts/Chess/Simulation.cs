@@ -15,6 +15,27 @@ public unsafe ref struct Simulation
 
     public List<(Move, float)> moves;
     
+    public Move GetBestMove(int depth)
+    {
+        moves.Clear();
+        
+        float eval = AlphaBeta(depth, game.currentBoard->m_SideToMove, float.NegativeInfinity, float.PositiveInfinity, true);
+        
+        float bestEval = float.NegativeInfinity;
+        Move bestMove = default;
+        foreach ((Move move, float evalAfterMove) in moves)
+        {
+            if (evalAfterMove > bestEval)
+            {
+                bestEval = evalAfterMove;
+                bestMove = move;
+            }
+        }
+        
+        return bestMove;
+    }
+    
+    
     // alpha beta
     public float AlphaBeta(int depth, SideToMove sideToMove, float alpha, float beta, bool isRoot = false)
     {
