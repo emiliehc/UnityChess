@@ -775,7 +775,8 @@ public unsafe struct Board
     private bool m_WhiteKingInCheck;
     private bool m_BlackKingInCheck;
 
-    public bool InCheck => m_WhiteKingInCheck || m_BlackKingInCheck;
+    public bool WhiteKingInCheck => m_WhiteKingInCheck;
+    public bool BlackKingInCheck => m_BlackKingInCheck;
 
     public void GenerateAttackMapForSide(SideToMove side)
     {
@@ -1119,6 +1120,7 @@ public unsafe struct Board
         
         // flip side to move
         m_SideToMove = m_SideToMove == SideToMove.White ? SideToMove.Black : SideToMove.White;
+        GenerateAttackMapForSide(m_SideToMove);
     }
 
     public string Fen

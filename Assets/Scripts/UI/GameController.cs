@@ -170,6 +170,28 @@ public unsafe class GameController : MonoBehaviour
             }
         }
     }
+
+    private void MakeMove(Move move)
+    {
+        Board.SideToMove toMove = s_Game.currentBoard->m_SideToMove;
+        s_Game.MakeMove(move);
+        if (toMove == Board.SideToMove.White)
+        {
+            // is white king in check ?
+            if (s_Game.currentBoard->WhiteKingInCheck)
+            {
+                s_Game.UnmakeMove();
+            }
+        }
+        else
+        {
+            // is black king in check ?
+            if (s_Game.currentBoard->BlackKingInCheck)
+            {
+                s_Game.UnmakeMove();
+            }
+        }
+    }
     
     private void Update()
     {
@@ -216,7 +238,7 @@ public unsafe class GameController : MonoBehaviour
                     }
                 }
 
-                if (board->InCheck)
+                if (board->WhiteKingInCheck | board->BlackKingInCheck)
                 {
                     // is it king ?
                     if (board->m_SideToMove == Board.SideToMove.White)
@@ -340,7 +362,7 @@ public unsafe class GameController : MonoBehaviour
                         if (moves.Count == 1)
                         {
                             Move move = moves[0];
-                            s_Game.MakeMove(move);
+                            MakeMove(move);
                             // reset
                             m_Dragging = false;
                             m_MoveMap.Clear();
@@ -355,7 +377,7 @@ public unsafe class GameController : MonoBehaviour
                             // TODO
                             // for now, autopromote to queen
                             Move move = moves.FirstOrDefault(m => (m & Move.MoveTypeMask) == Move.QueenPromotionCapture || (m & Move.MoveTypeMask) == Move.QueenPromotion);
-                            s_Game.MakeMove(move);
+                            MakeMove(move);
                             
                             // reset
                             m_Dragging = false;
