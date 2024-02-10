@@ -21,18 +21,38 @@ public unsafe ref struct Simulation
         
         float eval = AlphaBeta(depth, game.currentBoard->m_SideToMove, float.NegativeInfinity, float.PositiveInfinity, true);
         
-        float bestEval = float.NegativeInfinity;
-        Move bestMove = default;
-        foreach ((Move move, float evalAfterMove) in moves)
+        if (game.currentBoard->m_SideToMove == SideToMove.White)
         {
-            if (evalAfterMove > bestEval)
+            float bestEval = float.NegativeInfinity;
+            Move bestMove = default;
+            foreach ((Move move, float evalAfterMove) in moves)
             {
-                bestEval = evalAfterMove;
-                bestMove = move;
+                if (evalAfterMove > bestEval)
+                {
+                    bestEval = evalAfterMove;
+                    bestMove = move;
+                }
             }
+        
+            return bestMove;
+        }
+        else
+        {
+            float bestEval = float.PositiveInfinity;
+            Move bestMove = default;
+            foreach ((Move move, float evalAfterMove) in moves)
+            {
+                if (evalAfterMove < bestEval)
+                {
+                    bestEval = evalAfterMove;
+                    bestMove = move;
+                }
+            }
+        
+            return bestMove;
         }
         
-        return bestMove;
+        
     }
     
     

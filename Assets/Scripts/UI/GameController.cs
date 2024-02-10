@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using UnityEngine;
 
 public unsafe class GameController : MonoBehaviour
@@ -119,6 +120,31 @@ public unsafe class GameController : MonoBehaviour
     private void Start()
     {
         RenderBoard();
+
+        string fen = s_Game->Fen;
+        Task.Run(() =>
+        {
+            Simulation simulation = new Simulation(fen);
+            for (int i = 0; i < 120; i++)
+            {
+                Move move = simulation.GetBestMove(5);
+                Debug.Log($"{i} {BoardUtils.GetMoveDescriptionWithBoard(*s_Game->currentBoard, move)}");
+                m_OutstandingMove = move;
+                simulation.game.MakeMove(move);
+                // wait one second
+                System.Threading.Thread.Sleep(100);
+            }
+        });
+        InvokeRepeating(nameof(MakeOutstandingMove), 0.0f, 0.1f);
+    }
+    
+    private Move? m_OutstandingMove = null;
+    
+    private void MakeOutstandingMove()
+    {
+        if (m_OutstandingMove == null) return;
+        MakeMove(m_OutstandingMove.Value);
+        m_OutstandingMove = null;
     }
 
     private void RenderBoard()
@@ -188,6 +214,9 @@ public unsafe class GameController : MonoBehaviour
                 s_Game->UnmakeMove();
             }
         }
+        
+        RenderBoard();
+        ResetColors();
     }
     
     private void Update()
@@ -364,9 +393,6 @@ public unsafe class GameController : MonoBehaviour
                             m_Dragging = false;
                             m_MoveMap.Clear();
                             m_Moves = null;
-
-                            RenderBoard();
-                            ResetColors();
                         }
                         else
                         {
@@ -380,9 +406,6 @@ public unsafe class GameController : MonoBehaviour
                             m_Dragging = false;
                             m_MoveMap.Clear();
                             m_Moves = null;
-
-                            RenderBoard();
-                            ResetColors();
                         }
                     }
                 }
