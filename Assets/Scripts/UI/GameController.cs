@@ -7,7 +7,7 @@ using UnityEngine;
 
 public unsafe class GameController : MonoBehaviour
 {
-    private static Game s_Game;
+    private static Game* s_Game;
     public GameObject A1, B1, C1, D1, E1, F1, G1, H1;
     public GameObject A2, B2, C2, D2, E2, F2, G2, H2;
     public GameObject A3, B3, C3, D3, E3, F3, G3, H3;
@@ -28,11 +28,8 @@ public unsafe class GameController : MonoBehaviour
     private void Awake()
     {
         m_Camera = Camera.main;
-        // GC pin
-        GC.KeepAlive(s_Game);
-        GCHandle.Alloc(s_Game, GCHandleType.Pinned);
-        
-        s_Game = new Game(Game.StartingFen);
+        s_Game = (Game*)Marshal.AllocHGlobal(sizeof(Game));
+        *s_Game = new Game(Game.StartingFen);
         
         // set up squares
         m_Squares[BoardUtils.SquareAlgebraicTo0X88("a1")] = A1;
@@ -131,7 +128,7 @@ public unsafe class GameController : MonoBehaviour
             Destroy(piece);
         }
         m_OnBoardPieces.Clear();
-        Board* board = s_Game.currentBoard;
+        Board* board = s_Game->currentBoard;
         for (byte i = 0; i < 128; i++)
         {
             if (!BoardUtils.IsSquareValid(i)) continue;
@@ -173,29 +170,29 @@ public unsafe class GameController : MonoBehaviour
 
     private void MakeMove(Move move)
     {
-        Board.SideToMove toMove = s_Game.currentBoard->m_SideToMove;
-        s_Game.MakeMove(move);
+        Board.SideToMove toMove = s_Game->currentBoard->m_SideToMove;
+        s_Game->MakeMove(move);
         if (toMove == Board.SideToMove.White)
         {
             // is white king in check ?
-            if (s_Game.currentBoard->WhiteKingInCheck)
+            if (s_Game->currentBoard->WhiteKingInCheck)
             {
-                s_Game.UnmakeMove();
+                s_Game->UnmakeMove();
             }
         }
         else
         {
             // is black king in check ?
-            if (s_Game.currentBoard->BlackKingInCheck)
+            if (s_Game->currentBoard->BlackKingInCheck)
             {
-                s_Game.UnmakeMove();
+                s_Game->UnmakeMove();
             }
         }
     }
     
     private void Update()
     {
-        Board* board = s_Game.currentBoard;
+        Board* board = s_Game->currentBoard;
         
         if (m_Moves == null)
         {

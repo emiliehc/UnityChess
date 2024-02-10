@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
-public unsafe struct MoveList
+public unsafe ref struct MoveList
 {
     public const int MaxCount = 256;
     public const int ForcedPseudoLegalMovePriority = 0;

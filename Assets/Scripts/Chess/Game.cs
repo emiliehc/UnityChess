@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 
 [StructLayout(LayoutKind.Sequential)]
-public unsafe struct Game
+public unsafe ref struct Game
 {
     private Board* m_Boards;
     private int m_BoardsCount;

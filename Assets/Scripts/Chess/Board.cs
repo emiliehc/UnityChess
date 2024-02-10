@@ -50,6 +50,8 @@ public static class PieceUtils
         BlackPawn, BlackKnight, BlackBishop, BlackRook, BlackQueen, BlackKing,
     };
 
+    public static readonly float[] PieceToValue = new float[256];
+
     static PieceUtils()
     {
         foreach (ref char pieceChar in PieceToChars.AsSpan())
@@ -74,6 +76,22 @@ public static class PieceUtils
         {
             CharToPieces[PieceToChars[(int)piece]] = piece;
         }
+        
+        PieceToValue[(int)Piece.Empty] = 0;
+        PieceToValue[(int)WhitePawn] = 1;
+        PieceToValue[(int)WhiteKnight] = 3.05f;
+        PieceToValue[(int)WhiteBishop] = 3.33f;
+        PieceToValue[(int)WhiteRook] = 5.63f;
+        PieceToValue[(int)WhiteQueen] = 9.5f;
+        PieceToValue[(int)WhiteKing] = 0;
+        
+        // mirror for black
+        PieceToValue[(int)BlackPawn] = -PieceToValue[(int)WhitePawn];
+        PieceToValue[(int)BlackKnight] = -PieceToValue[(int)WhiteKnight];
+        PieceToValue[(int)BlackBishop] = -PieceToValue[(int)WhiteBishop];
+        PieceToValue[(int)BlackRook] = -PieceToValue[(int)WhiteRook];
+        PieceToValue[(int)BlackQueen] = -PieceToValue[(int)WhiteQueen];
+        PieceToValue[(int)BlackKing] = -PieceToValue[(int)WhiteKing];
     }
     
     public static Piece CreatePiece(Piece piece, Piece color)
@@ -442,7 +460,7 @@ public static class MoveUtils
 }
 
 [StructLayout(LayoutKind.Sequential)]
-public unsafe struct Board
+public unsafe ref struct Board
 {
     public fixed byte m_Pieces[128];
     public Bitboard m_SquaresAttackedByWhite;
@@ -458,10 +476,18 @@ public unsafe struct Board
     public bool m_BlackCanCastleOO;
     public bool m_BlackCanCastleOOO;
 
-    public enum SideToMove : byte
+    public enum SideToMove : sbyte
     {
         White = 1,
-        Black = 2
+        Black = -1
+    }
+    
+    public static class SideToMoveUtils
+    {
+        public static SideToMove Opposite(SideToMove side)
+        {
+            return (SideToMove)(-((sbyte)side));
+        }
     }
     
     public Piece this[byte square0X88]
@@ -777,6 +803,11 @@ public unsafe struct Board
 
     public bool WhiteKingInCheck => m_WhiteKingInCheck;
     public bool BlackKingInCheck => m_BlackKingInCheck;
+    
+    public bool IsSideInCheck(SideToMove side)
+    {
+        return side == SideToMove.White ? m_WhiteKingInCheck : m_BlackKingInCheck;
+    }
 
     public void GenerateAttackMapForSide(SideToMove side)
     {
@@ -1121,6 +1152,35 @@ public unsafe struct Board
         // flip side to move
         m_SideToMove = m_SideToMove == SideToMove.White ? SideToMove.Black : SideToMove.White;
         GenerateAttackMapForSide(m_SideToMove);
+    }
+    
+    private void ForEachSquare(Action<byte, Piece> action)
+    {
+        for (byte sq = 0; sq < 128; sq++)
+        {
+            if (sq % 16 >= 8)
+            {
+                sq += 7;
+                continue;
+            }
+            action(sq, m_Pieces[sq].AsPiece());
+        }
+    }
+    
+    public float EvaluateMaterial()
+    {
+        float material = 0.0f;
+        ForEachSquare((sq, piece) =>
+        {
+            material += PieceUtils.PieceToValue[(int)piece];
+        });
+        return material;
+    }
+    
+    public float SimpleEvaluate()
+    {
+        float material = EvaluateMaterial();
+        return material;
     }
 
     public string Fen
