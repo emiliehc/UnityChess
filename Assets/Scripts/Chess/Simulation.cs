@@ -27,7 +27,7 @@ public unsafe ref struct Simulation
             Move bestMove = default;
             foreach ((Move move, float evalAfterMove) in moves)
             {
-                if (evalAfterMove > bestEval)
+                if (evalAfterMove >= bestEval)
                 {
                     bestEval = evalAfterMove;
                     bestMove = move;
@@ -42,7 +42,7 @@ public unsafe ref struct Simulation
             Move bestMove = default;
             foreach ((Move move, float evalAfterMove) in moves)
             {
-                if (evalAfterMove < bestEval)
+                if (evalAfterMove <= bestEval)
                 {
                     bestEval = evalAfterMove;
                     bestMove = move;
