@@ -33,7 +33,7 @@ public unsafe class GameController : MonoBehaviour
     {
         m_Camera = Camera.main;
         s_Game = (Game*)Marshal.AllocHGlobal(sizeof(Game));
-        *s_Game = new Game("r1b2k1r/ppp1bppp/8/1B1Q4/5q2/2P5/PPP2PPP/R3R1K1 w - - 1 0");
+        *s_Game = new Game(Game.StartingFen);
         
         // set up squares
         m_Squares[BoardUtils.SquareAlgebraicTo0X88("a1")] = A1;

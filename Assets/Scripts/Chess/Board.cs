@@ -489,6 +489,8 @@ public unsafe ref struct Board
     public bool m_WhiteCanCastleOOO;
     public bool m_BlackCanCastleOO;
     public bool m_BlackCanCastleOOO;
+    public bool m_WhiteCastled;
+    public bool m_BlackCastled;
 
     public enum SideToMove : sbyte
     {
@@ -596,6 +598,9 @@ public unsafe ref struct Board
         
         m_BlackKingInCheck = false;
         m_WhiteKingInCheck = false;
+        
+        m_WhiteCastled = false;
+        m_BlackCastled = false;
         
         GenerateAttackMapForSide(SideToMove.White);
         GenerateAttackMapForSide(SideToMove.Black);
@@ -1012,11 +1017,13 @@ public unsafe ref struct Board
                 {
                     m_WhiteCanCastleOO = false;
                     m_WhiteCanCastleOOO = false;
+                    m_WhiteCastled = true;
                 }
                 else
                 {
                     m_BlackCanCastleOO = false;
                     m_BlackCanCastleOOO = false;
+                    m_BlackCastled = true;
                 }
                 break;
             case Move.CastleOOO:
@@ -1032,11 +1039,13 @@ public unsafe ref struct Board
                 {
                     m_WhiteCanCastleOO = false;
                     m_WhiteCanCastleOOO = false;
+                    m_WhiteCastled = true;
                 }
                 else
                 {
                     m_BlackCanCastleOO = false;
                     m_BlackCanCastleOOO = false;
+                    m_BlackCastled = true;
                 }
                 break;
             case Move.Capture:
@@ -1225,14 +1234,23 @@ public unsafe ref struct Board
         
     }
     
+    public float EvaluateKingSafety()
+    {
+        float whiteKingSafety = m_WhiteCastled ? 1.0f : 0.0f;
+        float blackKingSafety = m_BlackCastled ? 1.0f : 0.0f;
+        return whiteKingSafety - blackKingSafety;
+    }
+    
     public const float MaterialWeight = 1.0f;
     public const float AttackMapWeight = 0.2f;
+    public const float KingSafetyWeight = 3.0f;
     
     public float SimpleEvaluate()
     {
         float material = EvaluateMaterial();
         float attacks = EvaluateAttackMap();
-        return material * MaterialWeight + attacks * AttackMapWeight;
+        float kingSafety = EvaluateKingSafety();
+        return material * MaterialWeight + attacks * AttackMapWeight + kingSafety * KingSafetyWeight;
     }
 
     public string Fen
