@@ -33,7 +33,7 @@ public unsafe class GameController : MonoBehaviour
     {
         m_Camera = Camera.main;
         s_Game = (Game*)Marshal.AllocHGlobal(sizeof(Game));
-        *s_Game = new Game("4kb1r/p2n1ppp/4q3/4p1B1/4P3/1Q6/PPP2PPP/2KR4 w k - 1 0");
+        *s_Game = new Game(Game.StartingFen);
         
         // set up squares
         m_Squares[BoardUtils.SquareAlgebraicTo0X88("a1")] = A1;
@@ -130,6 +130,7 @@ public unsafe class GameController : MonoBehaviour
             Simulation simulation = new Simulation(fen);
             for (int i = 0; i < 1000; i++)
             {
+                if (m_GameOver) return;
                 if (m_CancellationTokenSource.Token.IsCancellationRequested)
                 {
                     return;
@@ -140,6 +141,7 @@ public unsafe class GameController : MonoBehaviour
                 {
                     Thread.Sleep(100);
                 }
+                if (m_GameOver) return;
                 if (m_CancellationTokenSource.Token.IsCancellationRequested)
                 {
                     return;
@@ -147,7 +149,7 @@ public unsafe class GameController : MonoBehaviour
                 m_OutstandingMove = move;
                 simulation.game.MakeMove(move);
                 // wait one second
-                System.Threading.Thread.Sleep(100);
+                System.Threading.Thread.Sleep(1000);
             }
         });
         InvokeRepeating(nameof(MakeOutstandingMove), 0.0f, 0.01f);
@@ -218,6 +220,7 @@ public unsafe class GameController : MonoBehaviour
 
     private void MakeMove(Move move)
     {
+        if (m_GameOver) return;
         if (!s_Game->currentBoard->BothKingPresent)
         {
             m_GameOver = true;
