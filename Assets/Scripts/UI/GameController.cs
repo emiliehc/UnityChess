@@ -26,12 +26,14 @@ public unsafe class GameController : MonoBehaviour
     private Color m_DarkColor;
     private Color m_LightColor;
     private List<GameObject> m_OnBoardPieces = new List<GameObject>();
+    private CancellationTokenSource m_CancellationTokenSource = new CancellationTokenSource();
+    private bool m_GameOver = false;
     
     private void Awake()
     {
         m_Camera = Camera.main;
         s_Game = (Game*)Marshal.AllocHGlobal(sizeof(Game));
-        *s_Game = new Game(Game.StartingFen);
+        *s_Game = new Game("4kb1r/p2n1ppp/4q3/4p1B1/4P3/1Q6/PPP2PPP/2KR4 w k - 1 0");
         
         // set up squares
         m_Squares[BoardUtils.SquareAlgebraicTo0X88("a1")] = A1;
@@ -128,11 +130,19 @@ public unsafe class GameController : MonoBehaviour
             Simulation simulation = new Simulation(fen);
             for (int i = 0; i < 1000; i++)
             {
+                if (m_CancellationTokenSource.Token.IsCancellationRequested)
+                {
+                    return;
+                }
                 Move move = simulation.GetBestMove(5);
                 Debug.Log($"{i} {BoardUtils.GetMoveDescriptionWithBoard(*s_Game->currentBoard, move)}");
                 while (m_OutstandingMove != null)
                 {
                     Thread.Sleep(100);
+                }
+                if (m_CancellationTokenSource.Token.IsCancellationRequested)
+                {
+                    return;
                 }
                 m_OutstandingMove = move;
                 simulation.game.MakeMove(move);
@@ -150,6 +160,13 @@ public unsafe class GameController : MonoBehaviour
         if (m_OutstandingMove == null) return;
         MakeMove(m_OutstandingMove.Value);
         m_OutstandingMove = null;
+    }
+
+    private void OnDestroy()
+    {
+        m_GameOver = true;
+        m_CancellationTokenSource.Cancel();
+        //Marshal.FreeHGlobal((IntPtr)s_Game);
     }
 
     private void RenderBoard()
@@ -201,6 +218,12 @@ public unsafe class GameController : MonoBehaviour
 
     private void MakeMove(Move move)
     {
+        if (!s_Game->currentBoard->BothKingPresent)
+        {
+            m_GameOver = true;
+            m_CancellationTokenSource.Cancel();
+            return;
+        }
         Board.SideToMove toMove = s_Game->currentBoard->m_SideToMove;
         s_Game->MakeMove(move);
         if (toMove == Board.SideToMove.White)
@@ -208,14 +231,24 @@ public unsafe class GameController : MonoBehaviour
             // is white king in check ?
             if (s_Game->currentBoard->WhiteKingInCheck)
             {
+                if ((!s_Game->currentBoard->BothKingPresent))
+                {
+                    m_GameOver = true;
+                    m_CancellationTokenSource.Cancel();
+                }
                 s_Game->UnmakeMove();
             }
         }
         else
         {
             // is black king in check ?
-            if (s_Game->currentBoard->BlackKingInCheck)
+            if (s_Game->currentBoard->BlackKingInCheck || (!s_Game->currentBoard->BothKingPresent))
             {
+                if ((!s_Game->currentBoard->BothKingPresent))
+                {
+                    m_GameOver = true;
+                    m_CancellationTokenSource.Cancel();
+                }
                 s_Game->UnmakeMove();
             }
         }
