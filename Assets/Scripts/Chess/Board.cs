@@ -1191,11 +1191,23 @@ public unsafe ref struct Board
         });
         return material;
     }
+
+    public float EvaluateAttackMap()
+    {
+        long whiteAttackCount = BitboardUtils.CountBits((long)m_SquaresAttackedByWhite);
+        long blackAttackCount = BitboardUtils.CountBits((long)m_SquaresAttackedByBlack);
+        return whiteAttackCount - blackAttackCount;
+        
+    }
+    
+    public const float MaterialWeight = 1.0f;
+    public const float AttackMapWeight = 0.2f;
     
     public float SimpleEvaluate()
     {
         float material = EvaluateMaterial();
-        return material;
+        float attacks = EvaluateAttackMap();
+        return material * MaterialWeight + attacks * AttackMapWeight;
     }
 
     public string Fen

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -125,17 +126,21 @@ public unsafe class GameController : MonoBehaviour
         Task.Run(() =>
         {
             Simulation simulation = new Simulation(fen);
-            for (int i = 0; i < 120; i++)
+            for (int i = 0; i < 1000; i++)
             {
                 Move move = simulation.GetBestMove(5);
                 Debug.Log($"{i} {BoardUtils.GetMoveDescriptionWithBoard(*s_Game->currentBoard, move)}");
+                while (m_OutstandingMove != null)
+                {
+                    Thread.Sleep(100);
+                }
                 m_OutstandingMove = move;
                 simulation.game.MakeMove(move);
                 // wait one second
                 System.Threading.Thread.Sleep(100);
             }
         });
-        InvokeRepeating(nameof(MakeOutstandingMove), 0.0f, 0.1f);
+        InvokeRepeating(nameof(MakeOutstandingMove), 0.0f, 0.01f);
     }
     
     private Move? m_OutstandingMove = null;
