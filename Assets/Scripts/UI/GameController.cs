@@ -33,7 +33,7 @@ public unsafe class GameController : MonoBehaviour
     {
         m_Camera = Camera.main;
         s_Game = (Game*)Marshal.AllocHGlobal(sizeof(Game));
-        *s_Game = new Game(Game.StartingFen);
+        *s_Game = new Game("rn1qkbnr/pp3ppp/2p1p3/3pPb2/3P4/8/PPP1NPPP/RNBQKB1R w KQkq - 0 5");
         
         // set up squares
         m_Squares[BoardUtils.SquareAlgebraicTo0X88("a1")] = A1;
@@ -135,7 +135,7 @@ public unsafe class GameController : MonoBehaviour
                 {
                     return;
                 }
-                Move move = simulation.GetBestMove(4);
+                Move move = simulation.GetBestMove(3);
                 if (move == default)
                 {
                     Debug.Log("Game over triggered by chess engine!");
@@ -195,6 +195,33 @@ public unsafe class GameController : MonoBehaviour
             piece.transform.position = square.transform.position - new Vector3(0, 0, 2.0f);
             m_OnBoardPieces.Add(piece);
         }
+
+        if (board->WhiteKingInCheck || board->BlackKingInCheck)
+        {
+            for (byte i = 0; i < 128; i++)
+            {
+                if (!BoardUtils.IsSquareValid(i)) continue;
+                GameObject squareObject = m_Squares[i];
+                if (squareObject)
+                {
+                    if (board->WhiteKingInCheck)
+                    {
+                        if (board->m_Pieces[i] == (byte)PieceUtils.WhiteKing)
+                        {
+                            squareObject.GetComponent<SpriteRenderer>().color = new Color(1.0f, 0, 0, 1);
+                        }
+                    }
+                    else
+                    {
+                        if (board->m_Pieces[i] == (byte)PieceUtils.BlackKing)
+                        {
+                            squareObject.GetComponent<SpriteRenderer>().color = new Color(1, 0, 0, 1);
+                        }
+                    }
+                }
+            }
+        }
+        
     }
     
     private static byte Get0X88SquareFromMousePos(Vector2 mousePos)
@@ -263,8 +290,8 @@ public unsafe class GameController : MonoBehaviour
             }
         }
         
-        RenderBoard();
         ResetColors();
+        RenderBoard();
     }
     
     private void Update()

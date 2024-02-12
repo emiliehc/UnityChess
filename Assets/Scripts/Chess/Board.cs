@@ -615,6 +615,11 @@ public unsafe ref struct Board
     {
         return MoveUtils.ConstructQuietMove(from, to) | Move.DoublePawnPush;
     }
+    
+    public bool IsSquareAttackedBySide(byte square, SideToMove side)
+    {
+        return side == SideToMove.White ? m_SquaresAttackedByWhite.GetBit(square) : m_SquaresAttackedByBlack.GetBit(square);
+    }
 
     public int GenerateMoves(MoveList* moves)
     {
@@ -824,7 +829,22 @@ public unsafe ref struct Board
                     // check if both squares are empty
                     if ((m_Pieces[rookTo].AsPiece() & Piece.PieceMask) == Piece.Empty && (m_Pieces[kingTo].AsPiece() & Piece.PieceMask) == Piece.Empty)
                     {
-                        moves->Add(MoveUtils.ConstructQuietMove(sq, kingTo) | Move.CastleOO, MoveList.CastlePriority);
+                        // make sure the king is not castling from or through check
+                        Span<byte> squaresToCheck = stackalloc byte[] { (byte)(sq), (byte)(sq + BoardUtils.DirectionE), (byte)(sq + BoardUtils.DirectionE + BoardUtils.DirectionE) };
+                        bool canCastle = true;
+                        foreach (byte squareToCheck in squaresToCheck)
+                        {
+                            if (IsSquareAttackedBySide(squareToCheck, SideToMoveUtils.Opposite(m_SideToMove)))
+                            {
+                                canCastle = false;
+                                break;
+                            }
+                        }
+                        
+                        if (canCastle)
+                        {
+                            moves->Add(MoveUtils.ConstructQuietMove(sq, kingTo) | Move.CastleOO, MoveList.CastlePriority);
+                        }
                     }
                 }
                 
@@ -837,7 +857,22 @@ public unsafe ref struct Board
                     // check if all squares are empty
                     if ((m_Pieces[rookTo].AsPiece() & Piece.PieceMask) == Piece.Empty && (m_Pieces[kingTo].AsPiece() & Piece.PieceMask) == Piece.Empty && (m_Pieces[intermediate].AsPiece() & Piece.PieceMask) == Piece.Empty)
                     {
-                        moves->Add(MoveUtils.ConstructQuietMove(sq, kingTo) | Move.CastleOOO, MoveList.CastlePriority);
+                        // make sure the king is not castling from or through check
+                        Span<byte> squaresToCheck = stackalloc byte[] { (byte)(sq), (byte)(sq + BoardUtils.DirectionW), (byte)(sq + BoardUtils.DirectionW + BoardUtils.DirectionW) };
+                        bool canCastle = true;
+                        foreach (byte squareToCheck in squaresToCheck)
+                        {
+                            if (IsSquareAttackedBySide(squareToCheck, SideToMoveUtils.Opposite(m_SideToMove)))
+                            {
+                                canCastle = false;
+                                break;
+                            }
+                        }
+                        
+                        if (canCastle)
+                        {
+                            moves->Add(MoveUtils.ConstructQuietMove(sq, kingTo) | Move.CastleOOO, MoveList.CastlePriority);
+                        }
                     }
                 }
             }
