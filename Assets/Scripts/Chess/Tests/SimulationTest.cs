@@ -10,7 +10,7 @@ public unsafe class SimulationTest
         Simulation simulation = new Simulation(fen);
         for (int i = 0; i < 60; i++)
         {
-            Move move = simulation.GetBestMove(6);
+            (Move move, float eval) = simulation.GetBestMove(6);
             Console.WriteLine($"{i} {BoardUtils.GetMoveDescriptionWithBoard(*simulation.game.currentBoard, move)}");
             simulation.game.MakeMove(move);
         }

@@ -15,7 +15,7 @@ public unsafe ref struct Simulation
 
     public List<(Move, float)> moves;
     
-    public Move GetBestMove(int depth)
+    public (Move, float) GetBestMove(int depth)
     {
         moves.Clear();
         
@@ -34,7 +34,7 @@ public unsafe ref struct Simulation
                 }
             }
         
-            return bestMove;
+            return (bestMove, eval);
         }
         else
         {
@@ -49,7 +49,7 @@ public unsafe ref struct Simulation
                 }
             }
         
-            return bestMove;
+            return (bestMove, eval);
         }
         
         
