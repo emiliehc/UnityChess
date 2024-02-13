@@ -1237,9 +1237,10 @@ public unsafe ref struct Board
         m_SideToMove = m_SideToMove == SideToMove.White ? SideToMove.Black : SideToMove.White;
         GenerateAttackMapForSide(m_SideToMove);
     }
-    
-    private void ForEachSquare(Action<byte, Piece> action)
+
+    public float EvaluateMaterial()
     {
+        float material = 0.0f;
         for (byte sq = 0; sq < 128; sq++)
         {
             if (sq % 16 >= 8)
@@ -1247,17 +1248,8 @@ public unsafe ref struct Board
                 sq += 7;
                 continue;
             }
-            action(sq, m_Pieces[sq].AsPiece());
+            material += PieceUtils.PieceToValue[(int) m_Pieces[sq]];
         }
-    }
-    
-    public float EvaluateMaterial()
-    {
-        float material = 0.0f;
-        ForEachSquare((sq, piece) =>
-        {
-            material += PieceUtils.PieceToValue[(int)piece];
-        });
         return material;
     }
 

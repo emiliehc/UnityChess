@@ -9,21 +9,21 @@ public unsafe ref struct MoveList
     public const int ForcedMovePriority = 0;
     public const int MatePriority = 0;
     public const int PawnPushPriority = 5;
-    public const int PromotionPriority = 2;
-    public const int PawnCapturePriority = 5;
+    public const int PromotionPriority = 1;
+    public const int PawnCapturePriority = 2;
     public const int CapturePromotionPriority = 1;
-    public const int DoublePawnPushPriority = 3;
-    public const int KnightMovePriority = 6;
-    public const int KnightCapturePriority = 4;
+    public const int DoublePawnPushPriority = 2;
+    public const int KnightMovePriority = 3;
+    public const int KnightCapturePriority = 2;
     public const int KingMovePriority = 4;
     public const int KingCapturePriority = 3;
-    public const int BishopMovePriority = 7;
-    public const int BishopCapturePriority = 5;
-    public const int RookMovePriority = 3;
+    public const int BishopMovePriority = 4;
+    public const int BishopCapturePriority = 2;
+    public const int RookMovePriority = 4;
     public const int RookCapturePriority = 2;
-    public const int QueenMovePriority = 2;
-    public const int QueenCapturePriority = 1;
-    public const int CastlePriority = 3;
+    public const int QueenMovePriority = 5;
+    public const int QueenCapturePriority = 3;
+    public const int CastlePriority = 1;
     
     
     [StructLayout(LayoutKind.Explicit, Size = 4)]
