@@ -602,8 +602,7 @@ public unsafe ref struct Board
         m_WhiteCastled = false;
         m_BlackCastled = false;
         
-        GenerateAttackMapForSide(SideToMove.White);
-        GenerateAttackMapForSide(SideToMove.Black);
+        GenerateAttackMapForBothSides();
     }
 
     public Move GenerateSinglePawnPush(byte from, byte to)
@@ -892,20 +891,228 @@ public unsafe ref struct Board
         return side == SideToMove.White ? m_WhiteKingInCheck : m_BlackKingInCheck;
     }
 
-    public void GenerateAttackMapForSide(SideToMove side)
+    public void GenerateAttackMapForBothSides()
     {
-        Piece currentColor = side == SideToMove.White ? Piece.White : Piece.Black;
-        int pawnPushDirection = side == SideToMove.White ? BoardUtils.DirectionN : BoardUtils.DirectionS;
-        byte pawnStartRank = side == SideToMove.White ? BoardUtils.Rank2 : BoardUtils.Rank7;
-        byte pawnPromotionRank = side == SideToMove.White ? BoardUtils.Rank8 : BoardUtils.Rank1;
-        int[] pawnAttackMoves = side == SideToMove.White ? BoardUtils.WhitePawnAttackMoves : BoardUtils.BlackPawnAttackMoves;
-        byte enPassantRank = side == SideToMove.White ? BoardUtils.Rank5 : BoardUtils.Rank4;
-        bool canCastleOO = side == SideToMove.White ? m_WhiteCanCastleOO : m_BlackCanCastleOO;
-        bool canCastleOOO = side == SideToMove.White ? m_WhiteCanCastleOOO : m_BlackCanCastleOOO;
-        Bitboard squaresAttackedBySide = Bitboard.Empty;
-        Piece enemyKing = side == SideToMove.White ? PieceUtils.BlackKing : PieceUtils.WhiteKing;
+        const SideToMove whiteSide = SideToMove.White;
+        const Piece whiteColor = Piece.White;
+        int[] whitePawnAttackMoves = BoardUtils.WhitePawnAttackMoves;
+        Bitboard squaresAttackedByWhite = Bitboard.Empty;
+        Piece blackKing = PieceUtils.BlackKing;
         
-        bool oppositeKingInCheck = false;
+        bool blackKingInCheck = false;
+        
+        const SideToMove blackSide = SideToMove.Black;
+        const Piece blackColor = Piece.Black;
+        int[] blackPawnAttackMoves = BoardUtils.BlackPawnAttackMoves;
+        Bitboard squaresAttackedByBlack = Bitboard.Empty;
+        Piece whiteKing = PieceUtils.WhiteKing;
+        
+        bool whiteKingInCheck = false;
+
+        for (byte sq = 0; sq < 128; sq++)
+        {
+            if (sq % 16 >= 8)
+            {
+                sq += 7;
+                continue;
+            }
+            
+            Piece piece = m_Pieces[sq].AsPiece();
+            
+            if (piece == Piece.Empty)
+            {
+                continue;
+            }
+
+            switch (piece & Piece.PieceColorMask)
+            {
+                // pawn
+                case Piece.Pawn | whiteColor:
+                {
+                    // pawn captures, unless a step away from the pawn promotion rank, then promotion capture
+                    foreach (int pawnAttackMove in whitePawnAttackMoves)
+                    {
+                        byte to = (byte)(sq + pawnAttackMove);
+                        if (BoardUtils.IsSquareValid(to))
+                        {
+                            BitboardUtils.SetBitTrue(&squaresAttackedByWhite, to);
+                        
+                            // is it king
+                            if (m_Pieces[to].AsPiece() == blackKing)
+                            {
+                                blackKingInCheck = true;
+                            }
+                        }
+                    }
+
+                    break;
+                }
+                case Piece.Knight | whiteColor:
+                {
+                    foreach (int knightMove in BoardUtils.KnightMoves)
+                    {
+                        byte to = (byte)(sq + knightMove);
+                        if (!BoardUtils.IsSquareValid(to)) continue;
+                        BitboardUtils.SetBitTrue(&squaresAttackedByWhite, to);
+                        // is it king
+                        if (m_Pieces[to].AsPiece() == blackKing)
+                        {
+                            blackKingInCheck = true;
+                        }
+                    }
+
+                    break;
+                }
+                case Piece.Bishop | whiteColor:
+                case Piece.Queen | whiteColor:
+                case Piece.Rook | whiteColor:
+                {
+                    Piece pieceCode = piece & Piece.PieceMask;
+                
+                    int[] slidingDirections = BoardUtils.SlidingPieceDirections[(int)pieceCode];
+                
+                    foreach (int direction in slidingDirections)
+                    {
+                        int to = sq + direction;
+                        while (BoardUtils.IsSquareValid((byte)to))
+                        {
+                            BitboardUtils.SetBitTrue(&squaresAttackedByWhite, (byte)to);
+                            // is it king
+                            if (m_Pieces[to].AsPiece() == blackKing)
+                            {
+                                blackKingInCheck = true;
+                            }
+                            if ((m_Pieces[to].AsPiece() & Piece.PieceMask) != Piece.Empty)
+                            {
+                                break;
+                            }
+                            to += direction;
+                        }
+                    }
+
+                    break;
+                }
+                case Piece.King | whiteColor:
+                {
+                    // king
+                    // movements
+                    foreach (int dir in BoardUtils.KingMoves)
+                    {
+                        byte to = (byte)(sq + dir);
+                        if (!BoardUtils.IsSquareValid(to)) continue;
+                        BitboardUtils.SetBitTrue(&squaresAttackedByWhite, to);
+                        // is it king
+                        if (m_Pieces[to].AsPiece() == blackKing)
+                        {
+                            blackKingInCheck = true;
+                        }
+                    }
+
+                    break;
+                }
+                // pawn
+                case Piece.Pawn | blackColor:
+                {
+                    // pawn captures, unless a step away from the pawn promotion rank, then promotion capture
+                    foreach (int pawnAttackMove in blackPawnAttackMoves)
+                    {
+                        byte to = (byte)(sq + pawnAttackMove);
+                        if (BoardUtils.IsSquareValid(to))
+                        {
+                            BitboardUtils.SetBitTrue(&squaresAttackedByBlack, to);
+                        
+                            // is it king
+                            if (m_Pieces[to].AsPiece() == whiteKing)
+                            {
+                                whiteKingInCheck = true;
+                            }
+                        }
+                    }
+
+                    break;
+                }
+                case Piece.Knight | blackColor:
+                {
+                    foreach (int knightMove in BoardUtils.KnightMoves)
+                    {
+                        byte to = (byte)(sq + knightMove);
+                        if (!BoardUtils.IsSquareValid(to)) continue;
+                        BitboardUtils.SetBitTrue(&squaresAttackedByBlack, to);
+                        // is it king
+                        if (m_Pieces[to].AsPiece() == whiteKing)
+                        {
+                            whiteKingInCheck = true;
+                        }
+                    }
+
+                    break;
+                }
+                case Piece.Bishop | blackColor:
+                case Piece.Queen | blackColor:
+                case Piece.Rook | blackColor:
+                {
+                    Piece pieceCode = piece & Piece.PieceMask;
+                
+                    int[] slidingDirections = BoardUtils.SlidingPieceDirections[(int)pieceCode];
+                
+                    foreach (int direction in slidingDirections)
+                    {
+                        int to = sq + direction;
+                        while (BoardUtils.IsSquareValid((byte)to))
+                        {
+                            BitboardUtils.SetBitTrue(&squaresAttackedByBlack, (byte)to);
+                            // is it king
+                            if (m_Pieces[to].AsPiece() == whiteKing)
+                            {
+                                whiteKingInCheck = true;
+                            }
+                            if ((m_Pieces[to].AsPiece() & Piece.PieceMask) != Piece.Empty)
+                            {
+                                break;
+                            }
+                            to += direction;
+                        }
+                    }
+
+                    break;
+                }
+                case Piece.King | blackColor:
+                {
+                    // king
+                    // movements
+                    foreach (int dir in BoardUtils.KingMoves)
+                    {
+                        byte to = (byte)(sq + dir);
+                        if (!BoardUtils.IsSquareValid(to)) continue;
+                        BitboardUtils.SetBitTrue(&squaresAttackedByBlack, to);
+                        // is it king
+                        if (m_Pieces[to].AsPiece() == whiteKing)
+                        {
+                            whiteKingInCheck = true;
+                        }
+                    }
+
+                    break;
+                }
+            }
+        }
+        
+        m_SquaresAttackedByWhite = squaresAttackedByWhite;
+        m_BlackKingInCheck = blackKingInCheck;
+        
+        m_SquaresAttackedByBlack = squaresAttackedByBlack;
+        m_WhiteKingInCheck = whiteKingInCheck;
+    }
+
+    public void GenerateAttackMapForWhite()
+    {
+        const SideToMove whiteSide = SideToMove.White;
+        const Piece whiteColor = Piece.White;
+        int[] whitePawnAttackMoves = BoardUtils.WhitePawnAttackMoves;
+        Bitboard squaresAttackedByWhite = Bitboard.Empty;
+        Piece blackKing = PieceUtils.BlackKing;
+        
+        bool blackKingInCheck = false;
         
         // for current side to move
         // for each square
@@ -918,45 +1125,45 @@ public unsafe ref struct Board
             }
             
             Piece piece = m_Pieces[sq].AsPiece();
-            if (piece == Piece.Empty || (piece & Piece.ColorMask) != currentColor)
+            if (piece == Piece.Empty || (piece & Piece.ColorMask) != whiteColor)
             {
                 continue;
             }
             
             // pawn
-            if ((piece & Piece.PieceColorMask) == (Piece.Pawn | currentColor))
+            if ((piece & Piece.PieceColorMask) == (Piece.Pawn | whiteColor))
             {
                 // pawn captures, unless a step away from the pawn promotion rank, then promotion capture
-                foreach (int pawnAttackMove in pawnAttackMoves)
+                foreach (int pawnAttackMove in whitePawnAttackMoves)
                 {
                     byte to = (byte)(sq + pawnAttackMove);
                     if (BoardUtils.IsSquareValid(to))
                     {
-                        BitboardUtils.SetBitTrue(&squaresAttackedBySide, to);
+                        BitboardUtils.SetBitTrue(&squaresAttackedByWhite, to);
                         
                         // is it king
-                        if (m_Pieces[to].AsPiece() == enemyKing)
+                        if (m_Pieces[to].AsPiece() == blackKing)
                         {
-                            oppositeKingInCheck = true;
+                            blackKingInCheck = true;
                         }
                     }
                 }
             }
-            else if ((piece & Piece.PieceColorMask) == (Piece.Knight | currentColor))
+            else if ((piece & Piece.PieceColorMask) == (Piece.Knight | whiteColor))
             {
                 foreach (int knightMove in BoardUtils.KnightMoves)
                 {
                     byte to = (byte)(sq + knightMove);
                     if (!BoardUtils.IsSquareValid(to)) continue;
-                    BitboardUtils.SetBitTrue(&squaresAttackedBySide, to);
+                    BitboardUtils.SetBitTrue(&squaresAttackedByWhite, to);
                     // is it king
-                    if (m_Pieces[to].AsPiece() == enemyKing)
+                    if (m_Pieces[to].AsPiece() == blackKing)
                     {
-                        oppositeKingInCheck = true;
+                        blackKingInCheck = true;
                     }
                 }
             }
-            else if ((piece & Piece.PieceColorMask) == (Piece.Bishop | currentColor) || (piece & Piece.PieceColorMask) == (Piece.Queen | currentColor) || (piece & Piece.PieceColorMask) == (Piece.Rook | currentColor))
+            else if ((piece & Piece.PieceColorMask) == (Piece.Bishop | whiteColor) || (piece & Piece.PieceColorMask) == (Piece.Queen | whiteColor) || (piece & Piece.PieceColorMask) == (Piece.Rook | whiteColor))
             {
                 Piece pieceCode = piece & Piece.PieceMask;
                 
@@ -967,11 +1174,11 @@ public unsafe ref struct Board
                     int to = sq + direction;
                     while (BoardUtils.IsSquareValid((byte)to))
                     {
-                        BitboardUtils.SetBitTrue(&squaresAttackedBySide, (byte)to);
+                        BitboardUtils.SetBitTrue(&squaresAttackedByWhite, (byte)to);
                         // is it king
-                        if (m_Pieces[to].AsPiece() == enemyKing)
+                        if (m_Pieces[to].AsPiece() == blackKing)
                         {
-                            oppositeKingInCheck = true;
+                            blackKingInCheck = true;
                         }
                         if ((m_Pieces[to].AsPiece() & Piece.PieceMask) != Piece.Empty)
                         {
@@ -981,7 +1188,7 @@ public unsafe ref struct Board
                     }
                 }
             }
-            else if ((piece & Piece.PieceColorMask) == (Piece.King | currentColor))
+            else if ((piece & Piece.PieceColorMask) == (Piece.King | whiteColor))
             {
                 // king
                 // movements
@@ -989,25 +1196,139 @@ public unsafe ref struct Board
                 {
                     byte to = (byte)(sq + dir);
                     if (!BoardUtils.IsSquareValid(to)) continue;
-                    BitboardUtils.SetBitTrue(&squaresAttackedBySide, to);
+                    BitboardUtils.SetBitTrue(&squaresAttackedByWhite, to);
                     // is it king
-                    if (m_Pieces[to].AsPiece() == enemyKing)
+                    if (m_Pieces[to].AsPiece() == blackKing)
                     {
-                        oppositeKingInCheck = true;
+                        blackKingInCheck = true;
                     }
                 }
             }
         }
         
-        if (side == SideToMove.White)
+        if (whiteSide == SideToMove.White)
         {
-            m_SquaresAttackedByWhite = squaresAttackedBySide;
-            m_BlackKingInCheck = oppositeKingInCheck;
+            m_SquaresAttackedByWhite = squaresAttackedByWhite;
+            m_BlackKingInCheck = blackKingInCheck;
         }
         else
         {
-            m_SquaresAttackedByBlack = squaresAttackedBySide;
-            m_WhiteKingInCheck = oppositeKingInCheck;
+            m_SquaresAttackedByBlack = squaresAttackedByWhite;
+            m_WhiteKingInCheck = blackKingInCheck;
+        }
+    }
+    
+    public void GenerateAttackMapForBlack()
+    {
+        const SideToMove blackSide = SideToMove.Black;
+        const Piece blackColor = Piece.Black;
+        int[] blackPawnAttackMoves = BoardUtils.BlackPawnAttackMoves;
+        Bitboard squaresAttackedByBlack = Bitboard.Empty;
+        Piece whiteKing = PieceUtils.WhiteKing;
+        
+        bool whiteKingInCheck = false;
+        
+        // for current side to move
+        // for each square
+        for (byte sq = 0; sq < 128; sq++)
+        {
+            if (sq % 16 >= 8)
+            {
+                sq += 7;
+                continue;
+            }
+            
+            Piece piece = m_Pieces[sq].AsPiece();
+            if (piece == Piece.Empty || (piece & Piece.ColorMask) != blackColor)
+            {
+                continue;
+            }
+            
+            // pawn
+            if ((piece & Piece.PieceColorMask) == (Piece.Pawn | blackColor))
+            {
+                // pawn captures, unless a step away from the pawn promotion rank, then promotion capture
+                foreach (int pawnAttackMove in blackPawnAttackMoves)
+                {
+                    byte to = (byte)(sq + pawnAttackMove);
+                    if (BoardUtils.IsSquareValid(to))
+                    {
+                        BitboardUtils.SetBitTrue(&squaresAttackedByBlack, to);
+                        
+                        // is it king
+                        if (m_Pieces[to].AsPiece() == whiteKing)
+                        {
+                            whiteKingInCheck = true;
+                        }
+                    }
+                }
+            }
+            else if ((piece & Piece.PieceColorMask) == (Piece.Knight | blackColor))
+            {
+                foreach (int knightMove in BoardUtils.KnightMoves)
+                {
+                    byte to = (byte)(sq + knightMove);
+                    if (!BoardUtils.IsSquareValid(to)) continue;
+                    BitboardUtils.SetBitTrue(&squaresAttackedByBlack, to);
+                    // is it king
+                    if (m_Pieces[to].AsPiece() == whiteKing)
+                    {
+                        whiteKingInCheck = true;
+                    }
+                }
+            }
+            else if ((piece & Piece.PieceColorMask) == (Piece.Bishop | blackColor) || (piece & Piece.PieceColorMask) == (Piece.Queen | blackColor) || (piece & Piece.PieceColorMask) == (Piece.Rook | blackColor))
+            {
+                Piece pieceCode = piece & Piece.PieceMask;
+                
+                int[] slidingDirections = BoardUtils.SlidingPieceDirections[(int)pieceCode];
+                
+                foreach (int direction in slidingDirections)
+                {
+                    int to = sq + direction;
+                    while (BoardUtils.IsSquareValid((byte)to))
+                    {
+                        BitboardUtils.SetBitTrue(&squaresAttackedByBlack, (byte)to);
+                        // is it king
+                        if (m_Pieces[to].AsPiece() == whiteKing)
+                        {
+                            whiteKingInCheck = true;
+                        }
+                        if ((m_Pieces[to].AsPiece() & Piece.PieceMask) != Piece.Empty)
+                        {
+                            break;
+                        }
+                        to += direction;
+                    }
+                }
+            }
+            else if ((piece & Piece.PieceColorMask) == (Piece.King | blackColor))
+            {
+                // king
+                // movements
+                foreach (int dir in BoardUtils.KingMoves)
+                {
+                    byte to = (byte)(sq + dir);
+                    if (!BoardUtils.IsSquareValid(to)) continue;
+                    BitboardUtils.SetBitTrue(&squaresAttackedByBlack, to);
+                    // is it king
+                    if (m_Pieces[to].AsPiece() == whiteKing)
+                    {
+                        whiteKingInCheck = true;
+                    }
+                }
+            }
+        }
+        
+        if (blackSide == SideToMove.White)
+        {
+            m_SquaresAttackedByWhite = squaresAttackedByBlack;
+            m_BlackKingInCheck = whiteKingInCheck;
+        }
+        else
+        {
+            m_SquaresAttackedByBlack = squaresAttackedByBlack;
+            m_WhiteKingInCheck = whiteKingInCheck;
         }
     }
     
@@ -1231,11 +1552,10 @@ public unsafe ref struct Board
             m_HalfMoveClock++;
         }
         
-        GenerateAttackMapForSide(m_SideToMove);
+        GenerateAttackMapForBothSides();
         
         // flip side to move
         m_SideToMove = m_SideToMove == SideToMove.White ? SideToMove.Black : SideToMove.White;
-        GenerateAttackMapForSide(m_SideToMove);
     }
 
     public float EvaluateMaterial()
