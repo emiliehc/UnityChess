@@ -33,7 +33,7 @@ public unsafe class GameController : MonoBehaviour
     {
         m_Camera = Camera.main;
         s_Game = (Game*)Marshal.AllocHGlobal(sizeof(Game));
-        *s_Game = new Game("qnbqkbnq/8/8/8/PPPPPPPP/PPPPPPPP/PPPPPPPP/RNBQKBNR w KQ - 0 1");
+        *s_Game = new Game("3qr2k/1p3rbp/2p3p1/p7/P2pBNn1/1P3n2/6P1/B1Q1RR1K b - - 1 30");
         
         // set up squares
         m_Squares[BoardUtils.SquareAlgebraicTo0X88("a1")] = A1;
@@ -136,7 +136,7 @@ public unsafe class GameController : MonoBehaviour
                     return;
                 }
 
-                (Move move, int eval) = simulation.GetBestMove(5, 6);
+                (Move move, int eval) = simulation.GetBestMove(4, 5);
                 if (move == default)
                 {
                     Debug.Log("Game over triggered by chess engine!");

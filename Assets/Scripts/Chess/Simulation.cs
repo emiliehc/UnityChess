@@ -24,15 +24,25 @@ public static class SimulationUtils
 
         if (eval is > Simulation.MinEval and <= Simulation.BlackMateThreshold)
         {
-            return $"#-{eval - Simulation.MinEval}";
+            return $"#-{(eval - Simulation.MinEval) / 2}";
         }
         
         if (eval is < Simulation.MaxEval and >= Simulation.WhiteMateThreshold)
         {
-            return $"#{Simulation.MaxEval - eval}";
+            return $"#{(Simulation.MaxEval - eval) / 2}";
         }
 
         return $"{(float)eval / 100.0f}";
+    }
+    
+    public static bool IsWhiteAbleToForceMate(int eval)
+    {
+        return eval >= Simulation.WhiteMateThreshold;
+    }
+
+    public static bool IsBlackAbleToForceMate(int eval)
+    {
+        return eval <= Simulation.BlackMateThreshold;
     }
 }
 
@@ -146,13 +156,21 @@ public unsafe ref struct Simulation
                     moveExtension++;
                 }
 
-                int evalAfterMove = AlphaBeta(depth - 1 + moveExtension, absoluteMaxDepth - 1, SideToMove.Black, alpha, beta);
+                int moveEval = AlphaBeta(depth - 1 + moveExtension, absoluteMaxDepth - 1, SideToMove.Black, alpha, beta);
+                if (SimulationUtils.IsWhiteAbleToForceMate(moveEval))
+                {
+                    moveEval -= 1;
+                }
+                else if (SimulationUtils.IsBlackAbleToForceMate(moveEval))
+                {
+                    moveEval += 1;
+                }
                 if (isRoot)
                 {
-                    moves.Add((move, evalAfterMove));
+                    moves.Add((move, moveEval));
                 }
 
-                value = Math.Max(value, evalAfterMove);
+                value = Math.Max(value, moveEval);
                 if (value > beta)
                 {
                     game.UnmakeMove();
@@ -206,13 +224,22 @@ public unsafe ref struct Simulation
                     moveExtension++;
                 }
 
-                int evalAfterMove = AlphaBeta(depth - 1 + moveExtension, absoluteMaxDepth -1, SideToMove.White, alpha, beta);
+                int moveEval = AlphaBeta(depth - 1 + moveExtension, absoluteMaxDepth -1, SideToMove.White, alpha, beta);
+                if (SimulationUtils.IsWhiteAbleToForceMate(moveEval))
+                {
+                    moveEval -= 1;
+                }
+                else if (SimulationUtils.IsBlackAbleToForceMate(moveEval))
+                {
+                    moveEval += 1;
+                }
+                
                 if (isRoot)
                 {
-                    moves.Add((move, evalAfterMove));
+                    moves.Add((move, moveEval));
                 }
 
-                value = Math.Min(value, evalAfterMove);
+                value = Math.Min(value, moveEval);
                 if (value < alpha)
                 {
                     game.UnmakeMove();
