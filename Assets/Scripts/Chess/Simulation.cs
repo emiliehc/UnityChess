@@ -18,22 +18,22 @@ public unsafe ref struct Simulation
     public Simulation(string fen)
     {
         game = new Game(fen);
-        moves = new List<(Move, float)>();
+        moves = new List<(Move, int)>();
     }
 
-    public List<(Move, float)> moves;
+    public List<(Move, int)> moves;
     
-    public (Move, float) GetBestMove(int depth, int absoluteDepth = 8)
+    public (Move, int) GetBestMove(int depth, int absoluteDepth = 8)
     {
         moves.Clear();
         
-        float eval = AlphaBeta(depth, absoluteDepth, game.currentBoard->m_SideToMove, float.NegativeInfinity, float.PositiveInfinity, true);
+        int eval = AlphaBeta(depth, absoluteDepth, game.currentBoard->m_SideToMove, AlphaBetaMin, AlphaBetaMax, true);
         
         if (game.currentBoard->m_SideToMove == SideToMove.White)
         {
-            float bestEval = float.NegativeInfinity;
+            int bestEval = MinEval;
             Move bestMove = default;
-            foreach ((Move move, float evalAfterMove) in moves)
+            foreach ((Move move, int evalAfterMove) in moves)
             {
                 if (evalAfterMove >= bestEval)
                 {
@@ -48,7 +48,7 @@ public unsafe ref struct Simulation
         {
             float bestEval = float.PositiveInfinity;
             Move bestMove = default;
-            foreach ((Move move, float evalAfterMove) in moves)
+            foreach ((Move move, int evalAfterMove) in moves)
             {
                 if (evalAfterMove <= bestEval)
                 {
@@ -65,7 +65,7 @@ public unsafe ref struct Simulation
     
     
     // alpha beta
-    public float AlphaBeta(int depth, int absoluteMaxDepth, SideToMove sideToMove, float alpha, float beta, bool isRoot = false)
+    public int AlphaBeta(int depth, int absoluteMaxDepth, SideToMove sideToMove, int alpha, int beta, bool isRoot = false)
     {
         if (depth == 0 || absoluteMaxDepth == 0)
         {
@@ -86,7 +86,7 @@ public unsafe ref struct Simulation
 
         if (sideToMove == SideToMove.White)
         {
-            float value = float.NegativeInfinity;
+            int value = MinEval;
             int counter = 0;
             for (int i = 0; i < count; i++)
             {
@@ -113,20 +113,20 @@ public unsafe ref struct Simulation
                     moveExtension++;
                 }
 
-                float evalAfterMove = AlphaBeta(depth - 1 + moveExtension, absoluteMaxDepth - 1, SideToMove.Black, alpha, beta);
+                int evalAfterMove = AlphaBeta(depth - 1 + moveExtension, absoluteMaxDepth - 1, SideToMove.Black, alpha, beta);
                 if (isRoot)
                 {
                     moves.Add((move, evalAfterMove));
                 }
 
-                value = MathF.Max(value, evalAfterMove);
+                value = Math.Max(value, evalAfterMove);
                 if (value > beta)
                 {
                     game.UnmakeMove();
                     return value;
                 }
                 
-                alpha = MathF.Max(alpha, value);
+                alpha = Math.Max(alpha, value);
                 game.UnmakeMove();
             }
             
@@ -136,7 +136,7 @@ public unsafe ref struct Simulation
                 if (game.currentBoard->WhiteKingInCheck)
                 {
                     // 0-1
-                    return float.NegativeInfinity;
+                    return MinEval;
                 }
 
                 // stalemate
@@ -147,7 +147,7 @@ public unsafe ref struct Simulation
         }
         else
         {
-            float value = float.PositiveInfinity;
+            int value = MaxEval;
             int counter = 0;
             for (int i = 0; i < count; i++)
             {
@@ -173,20 +173,20 @@ public unsafe ref struct Simulation
                     moveExtension++;
                 }
 
-                float evalAfterMove = AlphaBeta(depth - 1 + moveExtension, absoluteMaxDepth -1, SideToMove.White, alpha, beta);
+                int evalAfterMove = AlphaBeta(depth - 1 + moveExtension, absoluteMaxDepth -1, SideToMove.White, alpha, beta);
                 if (isRoot)
                 {
                     moves.Add((move, evalAfterMove));
                 }
 
-                value = MathF.Min(value, evalAfterMove);
+                value = Math.Min(value, evalAfterMove);
                 if (value < alpha)
                 {
                     game.UnmakeMove();
                     return value;
                 }
                 
-                beta = MathF.Min(beta, value);
+                beta = Math.Min(beta, value);
                 game.UnmakeMove();
             }
             
@@ -196,7 +196,7 @@ public unsafe ref struct Simulation
                 if (game.currentBoard->BlackKingInCheck)
                 {
                     // 1-0
-                    return float.PositiveInfinity;
+                    return MaxEval;
                 }
 
                 // stalemate
