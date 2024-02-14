@@ -51,7 +51,7 @@ public static class PieceUtils
         BlackPawn, BlackKnight, BlackBishop, BlackRook, BlackQueen, BlackKing,
     };
 
-    public static readonly float[] PieceToValue = new float[256];
+    public static readonly int[] PieceToValue = new int[256];
 
     static PieceUtils()
     {
@@ -79,11 +79,11 @@ public static class PieceUtils
         }
         
         PieceToValue[(int)Piece.Empty] = 0;
-        PieceToValue[(int)WhitePawn] = 1;
-        PieceToValue[(int)WhiteKnight] = 3.05f;
-        PieceToValue[(int)WhiteBishop] = 3.33f;
-        PieceToValue[(int)WhiteRook] = 5.63f;
-        PieceToValue[(int)WhiteQueen] = 9.5f;
+        PieceToValue[(int)WhitePawn] = 100;
+        PieceToValue[(int)WhiteKnight] = 305;
+        PieceToValue[(int)WhiteBishop] = 333;
+        PieceToValue[(int)WhiteRook] = 563;
+        PieceToValue[(int)WhiteQueen] = 950;
         PieceToValue[(int)WhiteKing] = 0;
         
         // mirror for black
@@ -1558,9 +1558,9 @@ public unsafe ref struct Board
         m_SideToMove = m_SideToMove == SideToMove.White ? SideToMove.Black : SideToMove.White;
     }
 
-    public float EvaluateMaterial()
+    public int EvaluateMaterial()
     {
-        float material = 0.0f;
+        int material = 0;
         for (byte sq = 0; sq < 128; sq++)
         {
             if (sq % 16 >= 8)
@@ -1568,35 +1568,35 @@ public unsafe ref struct Board
                 sq += 7;
                 continue;
             }
-            material += PieceUtils.PieceToValue[(int) m_Pieces[sq]];
+            material += PieceUtils.PieceToValue[m_Pieces[sq]];
         }
         return material;
     }
 
-    public float EvaluateAttackMap()
+    public int EvaluateAttackMap()
     {
         long whiteAttackCount = BitboardUtils.CountBits((long)m_SquaresAttackedByWhite);
         long blackAttackCount = BitboardUtils.CountBits((long)m_SquaresAttackedByBlack);
-        return whiteAttackCount - blackAttackCount;
+        return (int) (whiteAttackCount - blackAttackCount);
         
     }
     
-    public float EvaluateKingSafety()
+    public int EvaluateKingSafety()
     {
-        float whiteKingSafety = m_WhiteCastled ? 1.0f : 0.0f;
-        float blackKingSafety = m_BlackCastled ? 1.0f : 0.0f;
+        var whiteKingSafety = m_WhiteCastled ? 1 : 0;
+        var blackKingSafety = m_BlackCastled ? 1 : 0;
         return whiteKingSafety - blackKingSafety;
     }
     
-    public const float MaterialWeight = 1.0f;
-    public const float AttackMapWeight = 0.2f;
-    public const float KingSafetyWeight = 3.0f;
+    public const int MaterialWeight = 10;
+    public const int AttackMapWeight = 2;
+    public const int KingSafetyWeight = 3;
     
-    public float SimpleEvaluate()
+    public int SimpleEvaluate()
     {
-        float material = EvaluateMaterial();
-        float attacks = EvaluateAttackMap();
-        float kingSafety = EvaluateKingSafety();
+        int material = EvaluateMaterial();
+        int attacks = EvaluateAttackMap();
+        int kingSafety = EvaluateKingSafety();
         return material * MaterialWeight + attacks * AttackMapWeight + kingSafety * KingSafetyWeight;
     }
 

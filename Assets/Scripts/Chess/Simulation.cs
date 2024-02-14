@@ -6,6 +6,14 @@ using SideToMove = Board.SideToMove;
 public unsafe ref struct Simulation
 {
     public Game game;
+    private const int MinEval = -100000; // >=
+    private const int MaxEval = 100000; // <=
+
+    private const int AlphaBetaMax = MaxEval + 1;
+    private const int AlphaBetaMin = MinEval - 1;
+
+    private const int WhiteMateThreshold = MaxEval - 50; // >=
+    private const int BlackMateThreshold = MinEval + 50; // <=
     
     public Simulation(string fen)
     {
