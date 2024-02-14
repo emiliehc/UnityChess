@@ -136,7 +136,7 @@ public unsafe class GameController : MonoBehaviour
                     return;
                 }
 
-                (Move move, float eval) = simulation.GetBestMove(5);
+                (Move move, float eval) = simulation.GetBestMove(5, 6);
                 if (move == default)
                 {
                     Debug.Log("Game over triggered by chess engine!");

@@ -15,11 +15,11 @@ public unsafe ref struct Simulation
 
     public List<(Move, float)> moves;
     
-    public (Move, float) GetBestMove(int depth)
+    public (Move, float) GetBestMove(int depth, int absoluteDepth = 8)
     {
         moves.Clear();
         
-        float eval = AlphaBeta(depth, game.currentBoard->m_SideToMove, float.NegativeInfinity, float.PositiveInfinity, true);
+        float eval = AlphaBeta(depth, absoluteDepth, game.currentBoard->m_SideToMove, float.NegativeInfinity, float.PositiveInfinity, true);
         
         if (game.currentBoard->m_SideToMove == SideToMove.White)
         {
@@ -57,9 +57,9 @@ public unsafe ref struct Simulation
     
     
     // alpha beta
-    public float AlphaBeta(int depth, SideToMove sideToMove, float alpha, float beta, bool isRoot = false)
+    public float AlphaBeta(int depth, int absoluteMaxDepth, SideToMove sideToMove, float alpha, float beta, bool isRoot = false)
     {
-        if (depth == 0)
+        if (depth == 0 || absoluteMaxDepth == 0)
         {
             return game.currentBoard->SimpleEvaluate();
         }
@@ -92,8 +92,20 @@ public unsafe ref struct Simulation
                 }
 
                 counter++;
+                
+                // extend search if black is in check
+                int moveExtension = 0;
+                if (game.currentBoard->BlackKingInCheck)
+                {
+                    moveExtension++;
+                }
 
-                float evalAfterMove = AlphaBeta(depth - 1, SideToMove.Black, alpha, beta);
+                if ((move & Move.MoveTypeMask) != Move.QuietMove)
+                {
+                    moveExtension++;
+                }
+
+                float evalAfterMove = AlphaBeta(depth - 1 + moveExtension, absoluteMaxDepth - 1, SideToMove.Black, alpha, beta);
                 if (isRoot)
                 {
                     moves.Add((move, evalAfterMove));
@@ -142,7 +154,18 @@ public unsafe ref struct Simulation
 
                 counter++;
 
-                float evalAfterMove = AlphaBeta(depth - 1, SideToMove.White, alpha, beta);
+                int moveExtension = 0;
+                if (game.currentBoard->WhiteKingInCheck)
+                {
+                    moveExtension++;
+                }
+
+                if ((move & Move.MoveTypeMask) != Move.QuietMove)
+                {
+                    moveExtension++;
+                }
+
+                float evalAfterMove = AlphaBeta(depth - 1 + moveExtension, absoluteMaxDepth -1, SideToMove.White, alpha, beta);
                 if (isRoot)
                 {
                     moves.Add((move, evalAfterMove));
