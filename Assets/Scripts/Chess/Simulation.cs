@@ -3,17 +3,50 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using SideToMove = Board.SideToMove;
 
+public static class SimulationUtils
+{
+    public static string ToEvalInt(this int eval)
+    {
+        if (eval is < Simulation.MinEval or > Simulation.MaxEval)
+        {
+            return "invalid";
+        }
+
+        if (eval == Simulation.MinEval)
+        {
+            return "0-1";
+        }
+
+        if (eval == Simulation.MaxEval)
+        {
+            return "1-0";
+        }
+
+        if (eval is > Simulation.MinEval and <= Simulation.BlackMateThreshold)
+        {
+            return $"#-{eval - Simulation.MinEval}";
+        }
+        
+        if (eval is < Simulation.MaxEval and >= Simulation.WhiteMateThreshold)
+        {
+            return $"#{Simulation.MaxEval - eval}";
+        }
+
+        return $"{(float)eval / 100.0f}";
+    }
+}
+
 public unsafe ref struct Simulation
 {
     public Game game;
-    private const int MinEval = -100000; // >=
-    private const int MaxEval = 100000; // <=
+    public const int MinEval = -100000; // >=, 0-1
+    public const int MaxEval = 100000; // <=, 1-0
 
-    private const int AlphaBetaMax = MaxEval + 1;
-    private const int AlphaBetaMin = MinEval - 1;
+    public const int AlphaBetaMax = MaxEval + 1;
+    public const int AlphaBetaMin = MinEval - 1;
 
-    private const int WhiteMateThreshold = MaxEval - 50; // >=
-    private const int BlackMateThreshold = MinEval + 50; // <=
+    public const int WhiteMateThreshold = MaxEval - 50; // >=
+    public const int BlackMateThreshold = MinEval + 50; // <=
     
     public Simulation(string fen)
     {

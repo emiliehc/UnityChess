@@ -136,7 +136,7 @@ public unsafe class GameController : MonoBehaviour
                     return;
                 }
 
-                (Move move, float eval) = simulation.GetBestMove(5, 6);
+                (Move move, int eval) = simulation.GetBestMove(5, 6);
                 if (move == default)
                 {
                     Debug.Log("Game over triggered by chess engine!");
@@ -144,7 +144,7 @@ public unsafe class GameController : MonoBehaviour
                     m_CancellationTokenSource.Cancel();
                     return;
                 }
-                Debug.Log($"{eval} - {i} {BoardUtils.GetMoveDescriptionWithBoard(*s_Game->currentBoard, move)}");
+                Debug.Log($"{eval.ToEvalInt()} - {i} {BoardUtils.GetMoveDescriptionWithBoard(*s_Game->currentBoard, move)}");
                 while (m_OutstandingMove != null)
                 {
                     Thread.Sleep(100);
